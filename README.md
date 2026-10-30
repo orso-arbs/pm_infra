@@ -2,7 +2,7 @@
 
 Project-management infrastructure: local tools that turn meeting recordings into transcripts and minutes, filed under the right calendar event in Notion and in a folder on your drive.
 
-> Status: design complete, v1 not built yet (29 October 2026). Sections marked *(planned)* describe intended behaviour. Earlier design iterations are in `docs/design/`.
+> Status: v1 built (30 October 2026): installer, tray app, `transcribe`, spaces. The `minutes` step is v2 and not built; sections marked *(planned, v2)* describe it. Earlier design iterations are in `docs/design/`.
 
 ## What it does
 
@@ -136,7 +136,7 @@ A space is one folder with two parts: `Meetings/` for people and `pm_infra/` for
 
 | | Personal space | Team space |
 |---|---|---|
-| Location, chosen at setup | `OneDrive/misc/projects/misc_projects/` | a shared team drive |
+| Location, chosen at setup | `OneDrive/misc/Projects/` | a shared team drive |
 | `calendar_scope` | `all`: every calendar you have | the team's calendar(s) only |
 | Who drops files | you | anyone with folder access |
 
@@ -156,7 +156,7 @@ Both share one install, one tray icon and one `project_settings.yaml` per space.
 ## Folder layout
 
 ```
-OneDrive/misc/projects/misc_projects/        personal space
+OneDrive/misc/Projects/        personal space
 ├── Meetings/
 │   ├── 2026-10-28_1800_Project kickoff/  matched: named after the event
 │   │   ├── audio.m4a                         deleted after 14 days
@@ -180,8 +180,8 @@ A team space has the same two folders inside the team's shared drive, next to th
 
 - Created at transcription as `YYYY-MM-DD_HHMM_<original name>`. The date and time are the recording's, taken from the file name the Shortcut sets, else the media metadata, else the file date.
 - Renamed to `YYYY-MM-DD_HHMM_<event title>` once matched, using the event's start date and time. A folder still carrying the original name is waiting for you to pick its event.
-- Contents: `audio.m4a`, `transcript.md`, later `minutes.md`. A second recording of the same meeting becomes `transcript_2.md`.
-- Video input is converted to audio; the original video goes to `_to_delete/`.
+- Contents: `audio.m4a`, `transcript.md`, later `minutes.md`. A second recording of the same meeting becomes `transcript_2.md` with `audio_2.m4a`.
+- Video input is converted to audio; the original video goes to `_to_delete/`. The same happens to audio that isn't already m4a (mp3, wav, ...): it is re-encoded to `audio.m4a` (AAC 96 kbit/s mono) and the original waits in `_to_delete/`.
 
 ## Settings
 
@@ -198,10 +198,10 @@ transcribe:
   on_new_files: ask                # ask | always
 minutes:
   snapshot_to_folder: true         # write minutes.md
-audio_retention_days: 14
+audio_retention_days: 14         # 0 keeps audio forever
 ```
 
-The personal space uses `calendar_scope: all`.
+The personal space uses `calendar_scope: all`. The app rewrites this file from a template when it changes a value (for example *Always for this space*), so the comments survive.
 
 Nothing inside a space refers to absolute paths, so a space can be moved as a whole (see *Moving a space*).
 
@@ -215,24 +215,27 @@ recorded_end: 2026-10-28T19:30:00+01:00
 language: de
 model: large-v3-turbo
 speakers: 3
+time_source: prefix
 ---
 
 [00:00:04] SPEAKER_1: ...
 ```
 
-Exact start and end times are what the `minutes` step matches on.
+Exact start and end times are what the `minutes` step matches on. `time_source` says where the start came from: `prefix` (file name), `metadata` (media creation time) or `file` (modified time, the least reliable: it's the upload time for files copied without the Shortcut). Without a Hugging Face token the lines carry no speaker label and the header says `speakers: none`. Lines of one speaker less than a second apart are merged.
 
-## Setup *(planned)*
+## Setup
 
 ### Install
 
-Run `install_pm_infra.cmd` (from any space, or from the `pm_infra` GitHub releases). It installs into `%LOCALAPPDATA%\pm_infra\`, downloads the models (about 6 GB), adds the tray app to start at login and asks once for a Hugging Face token (for speaker labels). No admin rights. Needs an NVIDIA GPU.
+Run `install_pm_infra.cmd` (from any space, or from the `pm_infra` GitHub releases). It installs into `%LOCALAPPDATA%\pm_infra\`: a private copy of `uv`, Python 3.12, the environment (PyTorch with CUDA, about 3 GB), ffmpeg, the models (about 2 GB), and the launcher, compiled on the spot from `install/launcher/transcribe.cs` with the C# compiler that ships with Windows. It adds the tray app to start at login and an entry in Windows Settings → Apps (both under HKCU), and asks once for a Hugging Face token (for speaker labels; create a free account, accept the terms of `pyannote/speaker-diarization-3.1` and `pyannote/segmentation-3.0`, create a Read token). No admin rights. Needs an NVIDIA GPU; without one it still runs, slowly, on the CPU.
 
-At the end it creates your personal space at `OneDrive/misc/projects/misc_projects/` with `calendar_scope: all`.
+When run from a space's `pm_infra/` folder it registers that space. Otherwise, on a laptop with no spaces yet, it asks for the personal space folder (default: `OneDrive/misc/Projects/`) and creates the space there with `calendar_scope: all`. Running it again updates the app and keeps spaces, token and models.
+
+From a checkout instead of a release: `install_pm_infra.cmd --from <folder>`. Flags passed through to `install/install.ps1`: `-PersonalSpace <folder>`, `-Token <hf_...>`, `-NoTray`, `-SkipModels`.
 
 ### New team space
 
-Tray → **New space**: pick the shared folder, then tick the calendars this space searches. The installer starter, launcher and README are placed in its `pm_infra/` so teammates can install from there.
+Tray → **New space…**: pick the shared folder and a name. The installer starter, launcher and README are placed in its `pm_infra/` so teammates can install from there. The calendar picker for `calendar_scope` comes with v2; until then the space searches all calendars.
 
 ### iPhone Shortcut "Send to Transcribe"
 
@@ -245,18 +248,21 @@ Tray → **New space**: pick the shared folder, then tick the calendars this spa
 
 | You want to… | Do this |
 |---|---|
-| Transcribe a laptop recording | Drop it in a space's `Audio Inbox/`, double-click `transcribe.exe` |
+| Transcribe a laptop recording | Drop it in a space's `Audio Inbox/`, double-click `transcribe.exe` (or wait for the popup) |
 | Send a Voice Memo | Share → Send to Transcribe |
-| Handle new arrivals | Answer the popup: Transcribe now · Later · Always for this space |
+| Handle new arrivals | Answer the popup: Transcribe now · Later · Always for this space. *Later* asks again in an hour or when another file arrives |
 | Pick the event for an unmatched recording | Open the Unmatched list in Notion and choose the event (top three suggested) |
 
-## Watcher and tray *(planned)*
+## Watcher and tray
 
-- Watches every registered space's inbox. Idle cost is near 0% CPU, about 50 MB RAM.
-- Asks before running: *"2 new recordings in misc_projects"* → Transcribe now · Later · Always for this space.
-- Loads the model only for a run (about 2–3 GB VRAM).
-- Tray menu: New space · Move space… · Close space · Run on battery (off by default) · Pause watcher · Uninstall · Check for updates (later).
-- Deletes audio older than `audio_retention_days` once its transcript exists, and expired files in `_to_delete/`.
+- Polls every registered space's inbox every 5 seconds (polling, not file events: OneDrive placeholders make events unreliable). Idle cost is near 0% CPU, about 50 MB RAM.
+- A file counts as arrived once its size has been stable for 10 seconds, nobody holds it open and OneDrive has downloaded it.
+- Asks before running: *"2 new recordings in Projects"* → Transcribe now · Later · Always for this space. On battery with *Run on battery* off, the first button becomes *Transcribe when plugged in*.
+- A run is a separate console window (`python -m pm_infra run-now`), the same code path as `transcribe.exe`, so the tray survives any crash and the model memory is freed when the window closes. The window stays open on errors.
+- Loads the models only for a run: speaker model first, freed, then Whisper (about 3 GB VRAM peak). Falls back to `medium` on GPU out-of-memory.
+- Tray menu: New space… · Move space · Locate missing space (shown when a folder is missing) · Close space · Transcribe now · Run on battery (off by default) · Pause watcher · Open log folder · Uninstall… · Quit. Check for updates comes later.
+- Deletes audio older than `audio_retention_days` once its transcript exists, and expired files in `_to_delete/`: at start and once a day.
+- Logs: `%LOCALAPPDATA%\pm_infra\logs\pm_infra.log`.
 - Hourly (v2): checks the Unmatched list in Notion and runs the `minutes` step for recordings you've picked an event for.
 
 ## Minutes step *(planned, v2)*
@@ -268,7 +274,7 @@ Runs after transcription as Claude Code in the background (`claude -p` with the 
 3. **Clear match:** rename the meeting folder, write to the event's Notion page.
 4. **Unclear or no event:** add to the Unmatched list in Notion with the top three suggestions. Once you pick, the tray's hourly check runs the step again for that recording.
 
-The Notion page gets minutes on top (summary, decisions, action items), action items as entries in the Tasks database with owner and date, the transcript in a collapsed toggle, and the meeting folder's path relative to its space (`misc_projects / 2026-10-28_1800_…`), so it stays valid after a move. Never the audio. Events without a Notion page (iCloud, Google) get a new page in the space's `fallback_database`.
+The Notion page gets minutes on top (summary, decisions, action items), action items as entries in the Tasks database with owner and date, the transcript in a collapsed toggle, and the meeting folder's path relative to its space (`Projects / 2026-10-28_1800_…`), so it stays valid after a move. Never the audio. Events without a Notion page (iCloud, Google) get a new page in the space's `fallback_database`.
 
 `minutes.md` in the meeting folder is a snapshot. Its first line says so and links the Notion page. Edit minutes in Notion.
 
@@ -280,17 +286,17 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 - Recording with no event: stays unmatched until you pick or create one.
 - Scope depends on who runs the step: a teammate running it needs the team calendar in their Notion Calendar.
 
-## Moving a space *(planned)*
+## Moving a space
 
-- **Tray → Move space…**: pauses the watcher, moves the whole space folder, updates the list of spaces, resumes.
+- **Tray → Move space**: pick the space, then its new parent folder. It pauses the watcher, moves the whole space folder (refused while a transcription is running), updates the list of spaces, resumes.
 - **Moved in Explorer instead:** the app finds the registered folder missing and asks you to locate it; it recognises the space by `space_id`. Double-clicking `transcribe.exe` in the new location also re-registers it.
 - **Afterwards:** update the inbox path in the iPhone Shortcut (one variable). Teammates' installs re-register the same way.
 - **Constraint:** the personal space must stay where the phone can upload to (inside OneDrive).
 
-## Closing a space and uninstalling *(planned)*
+## Closing a space and uninstalling
 
 - **Close space** (tray): unregisters the folder and deletes remaining audio after a confirmation. Transcripts, minutes and the folder stay.
-- **Uninstall** (tray or Windows Settings → Apps): removes the start-at-login entry, `%LOCALAPPDATA%\pm_infra\` and the model cache. Spaces are never touched.
+- **Uninstall** (tray or Windows Settings → Apps): `install/uninstall.cmd` stops the tray, removes the start-at-login and Apps entries and `%LOCALAPPDATA%\pm_infra\` (app, environment, models, token). Spaces are never touched.
 
 ## Troubleshooting
 
@@ -301,12 +307,14 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 | iPhone file never arrives | Open the OneDrive app on the iPhone to push the upload. |
 | Folder keeps its original name | No clear event match; pick it in the Unmatched list. |
 | Team meeting not matched | The team calendar isn't in the Notion Calendar of whoever ran the step. |
-| Tray says a space is missing | It was moved or renamed; choose *Locate…* and point to its new folder. |
+| Tray says a space is missing | It was moved or renamed; choose *Locate missing space* and point to its new folder. |
+| No speaker labels, header says `speakers: none` | No Hugging Face token, or the model terms weren't accepted. Save the token to `%LOCALAPPDATA%\pm_infra\hf_token` and run `install-models` (or the installer) again. |
+| `transcribe.exe` says pm_infra isn't installed | Run `install_pm_infra.cmd` next to it. |
 | Phone recordings stop arriving after a move | Update the inbox path variable in the Shortcut. |
 
 ## Roadmap
 
-1. v1: installer, tray app with watcher and popup, `transcribe`, personal space, New space (with `calendar_scope: all`), meeting folders, audio retention, `space_id` and Move space.
+1. v1 (built): installer, tray app with watcher and popup, `transcribe`, personal space, New space (with `calendar_scope: all`), meeting folders, audio retention, `space_id` and Move space.
 2. iPhone Shortcut (built by hand from this README).
 3. Team spaces: calendar picker for `calendar_scope`, update checks.
 4. v2: `minutes` skill, Notion writing, Unmatched list, `minutes.md` snapshot, folder rename.
@@ -317,19 +325,42 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 ```
 README.md                      this file: the spec
 CLAUDE.md                      working rules for Claude Code
+LICENSE                        MIT
+pyproject.toml, uv.lock        package and pinned dependencies (Python 3.12, torch cu126)
+install_pm_infra.cmd           installer starter; a copy sits in every space
+install/install.ps1            the installer proper (Windows PowerShell 5.1 compatible)
+install/uninstall.cmd          what Settings → Apps and the tray run
+install/launcher/transcribe.cs the launcher, compiled at install time
+install/space_README.md        README placed in each space's pm_infra/
+src/pm_infra/                  the package: cli, tray, popup, inbox, engine, media, spaces, settings,
+                               naming, lock, retention, windows_setup, paths, log
+tests/                         pytest, no GPU needed
+.github/workflows/release.yml  tag v* → pm_infra.zip on the GitHub release
 docs/claude_code_prompt_v1.md  the v1 build brief
+docs/plan_v1.md                the v1 build plan
 docs/diagrams/                 diagram sources (.mmd) and renders (.png)
 docs/design/                   design iterations (local only, not in git: contains personal calendar data)
 ```
+
+Command line (`%LOCALAPPDATA%\pm_infra\env\Scripts\python.exe -m pm_infra ...`): `run-now --space <folder>`, `tray`, `new-space`, `register`, `list`, `cleanup`, `install-models`, `setup-windows [--remove]`, `version`.
+
+Tests: `uv sync --frozen` then `uv run pytest` (the engine is covered by a real recording, not by tests).
 
 ## Decisions log
 
 - Suite `pm_infra`; module `transcribe` first. Installer `install_pm_infra.cmd`. Public GitHub repo.
 - Calendar-first design with spaces; personal and team spaces differ only in location and `calendar_scope`.
-- Personal space: `OneDrive/misc/projects/misc_projects/`, `calendar_scope: all`.
+- Personal space: `OneDrive/misc/Projects/`, `calendar_scope: all`.
 - One folder per meeting with audio, transcript and minutes; renamed after the matched event, using the event's start time.
 - Notion is where minutes are edited; `minutes.md` is a snapshot.
 - Audio and original videos deleted after 14 days, once transcribed.
 - Watcher asks before running; battery runs toggled in the tray.
 - Lock file `.transcribing.lock`, hidden.
 - Spaces are movable: `space_id` in settings, no absolute paths inside a space, relative paths in Notion, Move space in the tray.
+- Personal space is `OneDrive/misc/Projects/` itself, next to the existing project folders (30 Oct 2026).
+- Engine: faster-whisper + pyannote called directly, not WhisperX; diarization first, then Whisper, models freed after each run. No token means no speaker labels, never a failed run.
+- Launcher `transcribe.exe` is a 40-line C# program compiled on each laptop at install time with the compiler Windows ships: nothing downloaded as a binary, nothing bundled, so no antivirus or SmartScreen trouble.
+- Installer: `install_pm_infra.cmd` starter + `install.ps1`; private `uv` and Python 3.12 under `%LOCALAPPDATA%\pm_infra`; registry entries only under HKCU.
+- Non-m4a originals (mp3, wav, video) go to `_to_delete/` after transcoding, same 14 days.
+- Transcript header gained `time_source`; *Later* in the popup snoozes a space for one hour; the tray has Quit, Transcribe now and Open log folder.
+- Popup default stays *ask* (`on_new_files: ask`).

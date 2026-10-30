@@ -1,0 +1,22 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release archive
+        run: |
+          mkdir -p out
+          zip -r out/pm_infra.zip . -x ".git/*" ".github/*" "docs/design/*" "tests/*" "*.pyc" "__pycache__/*"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/pm_infra.zip
+          generate_release_notes: true

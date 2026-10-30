@@ -15,7 +15,7 @@ Plan (don't build yet) v1 of `pm_infra`, a local meeting-transcription tool on m
 
 ## v1 scope
 1. **Repo `pm_infra`** (public GitHub): no tokens or personal paths committed.
-2. **Installer `install_pm_infra.cmd`**: small starter that sets up everything in `%LOCALAPPDATA%\pm_infra\` (environment, models, app), adds the tray app to start at login, registers an uninstall entry under HKCU so it shows in Windows Settings → Apps, asks for the HF token once, and finally creates my personal space at `%OneDrive%\misc\projects\misc_projects\`.
+2. **Installer `install_pm_infra.cmd`**: small starter that sets up everything in `%LOCALAPPDATA%\pm_infra\` (environment, models, app), adds the tray app to start at login, registers an uninstall entry under HKCU so it shows in Windows Settings → Apps, asks for the HF token once, and finally creates my personal space at `%USERPROFILE%\OneDrive\misc\Projects\` (the personal OneDrive; on this laptop `%OneDrive%` points to the business drive).
 3. **Space layout** exactly as in the README: `Meetings/` and `pm_infra/` with `Audio Inbox/`, `_failed/`, `_to_delete/`, `transcribe.exe`, `install_pm_infra.cmd`, `project_settings.yaml`, `README.md`, hidden `.transcribing.lock`. `project_settings.yaml` gets a generated `space_id` and `calendar_scope: all`.
 4. **`transcribe`** (per README "Meeting folders" and "Transcript format"):
    - wait until a file has finished syncing (size stable)
