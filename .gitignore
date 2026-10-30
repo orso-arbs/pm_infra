@@ -1,0 +1,16 @@
+# environments and builds
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+# never commit personal data
+*.m4a
+*.mp3
+*.mp4
+*.wav
+.env
+*.token
+# design history contains personal calendar data; keep it local
+docs/design/
