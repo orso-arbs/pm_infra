@@ -19,4 +19,4 @@ A local meeting-transcription suite for one Windows laptop, with optional team s
 - Ask short, concrete questions when something in the spec is ambiguous; push back when something in it looks wrong.
 
 ## Repo layout
-See the *Repository* section in `README.md`. Diagram sources are in `docs/diagrams/*.mmd`; if the architecture changes, update those and the copies in `README.md`.
+See the *Repository* section in `README.md`. The two diagrams in `README.md` are hand-written SVG in `docs/diagrams/*.svg` (self-contained, light and dark via `prefers-color-scheme`); if the architecture changes, update them and the prose next to them.

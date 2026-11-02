@@ -2,7 +2,7 @@
 
 Project-management infrastructure: local tools that turn meeting recordings into transcripts and minutes, filed under the right calendar event in Notion and in a folder on your drive.
 
-> Status: v1 built (30 October 2026): installer, tray app, `transcribe`, spaces. The `minutes` step is v2 and not built; sections marked *(planned, v2)* describe it. Earlier design iterations are in `docs/design/`.
+> Status: v1 built (30 October 2026, reviewed and fixed 2 November 2026): installer, tray app, `transcribe`, spaces. The `minutes` step is v2 and not built; sections marked *(planned, v2)* describe it. Earlier design iterations are in `docs/design/`.
 
 ## What it does
 
@@ -12,121 +12,19 @@ Project-management infrastructure: local tools that turn meeting recordings into
 4. The `minutes` step finds the calendar event the recording belongs to, combines the transcript with the notes on that event's Notion page, and writes minutes and action items there. A snapshot of the minutes goes into the meeting folder.
 
 
-## Context
+## System map
 
-What pm_infra is surrounded by, and what data crosses each line. Audio stays in your storage (laptop, OneDrive, shared drives); it never goes to Claude or Notion. Transcript and minutes text does, from v2 on.
+Who talks to whom. Everything stateful sits in two places: the space folder, plain files that OneDrive carries, and `%LOCALAPPDATA%\pm_infra`, private to one laptop. A space never stores a path to a laptop and a laptop finds spaces by `space_id`, so either side can move. Audio and transcripts never leave your drives; the network is used only at install time (models from Hugging Face, the app from GitHub). From v2 on, the `minutes` step adds Claude Code and Notion to this picture; see *Minutes step* below.
 
-```mermaid
-flowchart LR
-    subgraph PEOPLE["People"]
-        YOU(["You"])
-        TEAM(["Teammates"])
-    end
-    subgraph STORE["Your storage: laptop, OneDrive, shared drives"]
-        SP[("Spaces<br/>Meetings/ + pm_infra/")]
-        PM["pm_infra<br/>transcribes recordings,<br/>files them per meeting"]
-    end
-    CL["Claude<br/>via Claude Code"]
-    NO["Notion<br/>Calendar, event pages, Tasks"]
-    GH["GitHub<br/>pm_infra releases"]
-    HF["Hugging Face<br/>speech models"]
-    PEOPLE -- "audio" --> SP
-    SP <-- "audio in<br/>transcripts, minutes.md out" --> PM
-    PM -- "transcript text (v2)" --> CL
-    CL -- "minutes, tasks (v2)" --> NO
-    PEOPLE -- "read and edit minutes,<br/>pick unmatched events" --> NO
-    GH -. "app updates" .-> PM
-    HF -. "models, once" .-> PM
-    classDef person fill:#eeedfe,stroke:#534ab7,color:#26215c
-    classDef sys fill:#e1f5ee,stroke:#0f6e56,color:#04342c
-    classDef ext fill:#f1efe8,stroke:#5f5e5a,color:#2c2c2a
-    class YOU,TEAM person
-    class PM,SP sys
-    class CL,NO,GH,HF ext
-    style STORE fill:#fbfbf8,stroke:#0f6e56,stroke-dasharray: 5 4
-    style PEOPLE fill:#fbfbf8,stroke:#534ab7
-```
+![System map: sources, the space folder in OneDrive, this laptop's private pm_infra folder, and install-time downloads](docs/diagrams/system_map.svg)
 
-## Containers
-
-The parts pm_infra is made of and where each one runs. Dashed purple: arrives with v2.
-
-```mermaid
-flowchart LR
-    SP[("Spaces<br/>Audio Inbox/, Meetings/")]
-    subgraph SPACE["In every space: pm_infra/"]
-        LA["transcribe.exe<br/>launcher: run now, register space"]
-        ST["project_settings.yaml<br/>space_id, calendar_scope"]
-    end
-    subgraph APP["On the laptop: %LOCALAPPDATA%\pm_infra"]
-        TR["Tray app<br/>watcher, popup, cleanup, menu"]
-        RG[("Spaces registry<br/>by space_id")]
-        EN["transcribe engine<br/>faster-whisper + pyannote, GPU"]
-        MC[("Model cache<br/>~6 GB")]
-        MS["minutes skill (v2)<br/>Claude Code, headless"]
-    end
-    NO["Notion"]
-    GH["GitHub release<br/>install_pm_infra.cmd"]
-    GH -. "installs, updates" .-> APP
-    LA -- "run now / register" --> TR
-    TR --- RG
-    TR -- "watches inboxes,<br/>deletes old audio" --> SP
-    TR -- "reads" --> ST
-    TR -- "starts a run" --> EN
-    EN --- MC
-    EN -- "meeting folder:<br/>audio.m4a, transcript.md" --> SP
-    EN -. "after each run" .-> MS
-    MS -- "minutes.md, folder rename" --> SP
-    MS -- "calendar, pages, tasks" --> NO
-    classDef sys fill:#e1f5ee,stroke:#0f6e56,color:#04342c
-    classDef v2 fill:#eeedfe,stroke:#534ab7,color:#26215c,stroke-dasharray: 4 3
-    classDef ext fill:#f1efe8,stroke:#5f5e5a,color:#2c2c2a
-    class TR,RG,EN,MC,LA,ST sys
-    class MS v2
-    class SP,NO,GH ext
-    style APP fill:#fbfbf8,stroke:#0f6e56
-    style SPACE fill:#fbfbf8,stroke:#0f6e56,stroke-dasharray: 5 4
-```
+Solid arrows are runtime calls or file moves, dashed blue is OneDrive sync (outside pm_infra's control), dotted grey happens once at install.
 
 ## How a recording flows
 
-The main scenario in time order, with what happens when transcription fails or no event matches. Same parts as the container diagram. Steps 8–18 arrive with v2.
+One recording's path from arrival to deletion of its audio. The run itself is a separate console window started by the tray or by `transcribe.exe`; if it crashes, the tray survives and the model memory is freed with the window. A failed run leaves nothing in `Meetings/`. Steps after the meeting folder (calendar match, Notion minutes, folder rename) arrive with v2.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor You
-    participant SP as Space (OneDrive)
-    participant TR as Tray app
-    participant EN as transcribe engine
-    participant MS as minutes skill (v2)
-    participant NO as Notion
-    You->>SP: Recording into Audio Inbox/<br/>(iPhone Shortcut or drag and drop)
-    SP-->>TR: New file, sync finished
-    TR->>You: Popup: transcribe now?
-    You->>TR: Now (or Always for this space)
-    TR->>EN: Start run
-    alt transcription fails
-        EN->>SP: File to _failed/ + error.log
-    else transcription works
-        EN->>SP: Meetings/2026-10-28_1802_Recording/<br/>audio.m4a + transcript.md
-        EN->>MS: Start minutes
-        MS->>NO: Events overlapping 18:02–19:30<br/>within calendar_scope
-        NO-->>MS: Candidates
-        alt one clear match
-            MS->>NO: Read your notes on the event page
-            MS->>NO: Write minutes, tasks, transcript toggle
-            MS->>SP: minutes.md snapshot,<br/>rename folder to the event
-        else unclear or no event
-            MS->>NO: Add to Unmatched list (top 3 suggestions)
-            You->>NO: Pick the event
-            TR->>MS: Hourly check finds the pick, runs minutes
-            MS->>NO: Write minutes, tasks, transcript toggle
-            MS->>SP: minutes.md snapshot, rename folder
-        end
-    end
-    Note over SP,EN: 14 days after recording: tray deletes audio.m4a
-```
+![Recording flow: arrives, stable, popup, lock, decode and transcribe, meeting folder, audio deleted after 14 days; failures go to _failed](docs/diagrams/recording_flow.svg)
 
 ## Concepts
 
@@ -347,7 +245,7 @@ tests/                         pytest, no GPU needed
 .github/workflows/release.yml  tag v* → pm_infra.zip on the GitHub release
 docs/claude_code_prompt_v1.md  the v1 build brief
 docs/plan_v1.md                the v1 build plan
-docs/diagrams/                 diagram sources (.mmd) and renders (.png)
+docs/diagrams/*.svg            system map and recording flow, hand-written SVG, embedded above
 docs/design/                   design iterations (local only, not in git: contains personal calendar data)
 ```
 

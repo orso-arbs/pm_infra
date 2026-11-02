@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 640" role="img" aria-label="Recordings reach a space folder in OneDrive from a phone or the laptop. On the laptop, a tray app polls the inbox, asks the user, and starts a run-now console that loads models from AppData, uses the GPU, and writes a meeting folder. Hugging Face and GitHub are only contacted at install time. A teammate's laptop shares the same space through a lock file.">
+      <rect class="bg" x="0" y="0" width="1080" height="640"/>
+      <style>
+  :root { --bg:#ffffff; --fg:#1f2a28; --muted:#5d6b68; --line:#c9cfcb; --panel:#ffffff; --accent:#0f6e56; --accent-soft:#d9ece5; --warn:#b4531a; --warn-soft:#f6e3d6; --sync:#2b5ea8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0d1117; --fg:#e4e9e6; --muted:#9aa8a3; --line:#3a4542; --panel:#161b22; --accent:#4fc39f; --accent-soft:#1f3a32; --warn:#e8935d; --warn-soft:#3d2a1c; --sync:#7fa8e6; }
+  }
+  svg { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; color: var(--fg); }
+  .bg { fill: var(--bg); }
+  text { fill: currentColor; font-size: 12px; }
+  .t-mono { font-family: Consolas, "Courier New", monospace; font-size: 11px; }
+  .t-title { font-size: 13px; font-weight: 600; }
+  .t-muted { fill: var(--muted); font-size: 11px; }
+  .t-small { font-size: 10.5px; }
+  .box { fill: var(--panel); stroke: currentColor; stroke-width: 1.1; }
+  .zone { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 3; }
+  .zone-label { fill: var(--muted); font-family: Consolas, "Courier New", monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .accent { fill: var(--accent-soft); stroke: var(--accent); }
+  .warn { fill: var(--warn-soft); stroke: var(--warn); }
+  .edge { stroke: currentColor; stroke-width: 1.2; fill: none; }
+  .edge-sync { stroke: var(--sync); stroke-dasharray: 5 3; }
+  .edge-once { stroke: var(--muted); stroke-dasharray: 2 3; }
+  .lbl { font-size: 10.5px; fill: var(--muted); }
+  .lbl-sync { fill: var(--sync); }
+</style>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="arr-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--sync)"/>
+        </marker>
+        <marker id="arr-once" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+        </marker>
+      </defs>
+
+      <!-- ===== Zone: sources (left) ===== -->
+      <rect class="zone" x="20" y="60" width="180" height="300" rx="6"/>
+      <text class="zone-label" x="30" y="52">Sources</text>
+
+      <rect class="box" x="40" y="90" width="140" height="56" rx="4"/>
+      <text class="t-title" x="110" y="113" text-anchor="middle">iPhone</text>
+      <text class="t-muted" x="110" y="131" text-anchor="middle">Voice Memo → Shortcut</text>
+
+      <rect class="box" x="40" y="190" width="140" height="56" rx="4"/>
+      <text class="t-title" x="110" y="213" text-anchor="middle">Laptop recording</text>
+      <text class="t-muted" x="110" y="231" text-anchor="middle">any audio or video file</text>
+
+      <rect class="box" x="40" y="290" width="140" height="56" rx="4"/>
+      <text class="t-title" x="110" y="313" text-anchor="middle">Teammate's laptop</text>
+      <text class="t-muted" x="110" y="331" text-anchor="middle">own pm_infra install</text>
+
+      <!-- ===== Zone: the space (middle) ===== -->
+      <rect class="zone" x="250" y="60" width="300" height="540" rx="6"/>
+      <text class="zone-label" x="260" y="52">A space · folder in OneDrive</text>
+
+      <!-- pm_infra/ subfolder -->
+      <rect class="box" x="270" y="80" width="260" height="250" rx="4" fill="none"/>
+      <text class="t-mono" x="280" y="98">pm_infra\</text>
+
+      <rect class="box accent" x="285" y="110" width="230" height="44" rx="3"/>
+      <text class="t-title" x="400" y="128" text-anchor="middle">Audio Inbox\</text>
+      <text class="t-muted" x="400" y="145" text-anchor="middle">files arrive here</text>
+
+      <rect class="box" x="285" y="164" width="110" height="40" rx="3"/>
+      <text class="t-mono" x="340" y="181" text-anchor="middle">transcribe.exe</text>
+      <text class="t-small t-muted" x="340" y="196" text-anchor="middle">double-click</text>
+
+      <rect class="box" x="405" y="164" width="110" height="40" rx="3"/>
+      <text class="t-mono" x="460" y="181" text-anchor="middle">.transcribing.lock</text>
+      <text class="t-small t-muted" x="460" y="196" text-anchor="middle">hidden, one per space</text>
+
+      <rect class="box" x="285" y="214" width="110" height="40" rx="3"/>
+      <text class="t-mono" x="340" y="231" text-anchor="middle">project_settings</text>
+      <text class="t-small t-muted" x="340" y="246" text-anchor="middle">space_id · scope</text>
+
+      <rect class="box warn" x="405" y="214" width="110" height="40" rx="3"/>
+      <text class="t-mono" x="460" y="231" text-anchor="middle">_failed\</text>
+      <text class="t-small t-muted" x="460" y="246" text-anchor="middle">+ error.log</text>
+
+      <rect class="box" x="285" y="264" width="230" height="40" rx="3"/>
+      <text class="t-mono" x="400" y="281" text-anchor="middle">_to_delete\</text>
+      <text class="t-small t-muted" x="400" y="296" text-anchor="middle">originals that were transcoded · 14 days</text>
+
+      <!-- Meetings/ -->
+      <rect class="box" x="270" y="350" width="260" height="230" rx="4" fill="none"/>
+      <text class="t-mono" x="280" y="368">Meetings\</text>
+
+      <rect class="box accent" x="285" y="380" width="230" height="110" rx="3"/>
+      <text class="t-mono" x="400" y="400" text-anchor="middle">2026-11-02_2011_BBM team…\</text>
+      <line x1="300" y1="410" x2="500" y2="410" stroke="var(--accent)" stroke-width="1"/>
+      <text class="t-mono" x="300" y="430">audio.m4a</text>
+      <text class="t-small t-muted" x="500" y="430" text-anchor="end">deleted after 14 d</text>
+      <text class="t-mono" x="300" y="452">transcript.md</text>
+      <text class="t-small t-muted" x="500" y="452" text-anchor="end">kept</text>
+      <text class="t-small t-muted" x="300" y="476">[hh:mm:ss] SPEAKER_n: text</text>
+
+      <text class="t-muted" x="400" y="520" text-anchor="middle">one folder per recording</text>
+      <text class="t-muted" x="400" y="537" text-anchor="middle">time from name prefix, else metadata, else file date</text>
+      <text class="t-small t-muted" x="400" y="565" text-anchor="middle">no absolute paths inside: the whole folder can move</text>
+
+      <!-- ===== Zone: this laptop (right) ===== -->
+      <rect class="zone" x="600" y="60" width="460" height="400" rx="6"/>
+      <text class="zone-label" x="610" y="52">This laptop · %LOCALAPPDATA%\pm_infra</text>
+
+      <rect class="box accent" x="620" y="80" width="200" height="86" rx="4"/>
+      <text class="t-title" x="720" y="100" text-anchor="middle">Tray app</text>
+      <text class="t-small t-muted" x="720" y="117" text-anchor="middle">starts at login (HKCU Run key)</text>
+      <text class="t-small t-muted" x="720" y="132" text-anchor="middle">popup: Now · Later · Always</text>
+      <text class="t-small t-muted" x="720" y="147" text-anchor="middle">menu: New · Move · Locate · Close</text>
+      <text class="t-small t-muted" x="720" y="160" text-anchor="middle">retention once a day</text>
+
+      <rect class="box accent" x="620" y="220" width="200" height="110" rx="4"/>
+      <text class="t-title" x="720" y="240" text-anchor="middle">run-now console</text>
+      <text class="t-small t-muted" x="720" y="256" text-anchor="middle">the engine, own window</text>
+      <text class="t-mono t-small" x="640" y="278">1 ffmpeg → 16 kHz wav</text>
+      <text class="t-mono t-small" x="640" y="294">2 pyannote → speaker turns</text>
+      <text class="t-mono t-small" x="640" y="310">3 faster-whisper → text</text>
+      <text class="t-mono t-small" x="640" y="324">4 merge → transcript.md</text>
+
+      <rect class="box" x="860" y="80" width="180" height="70" rx="4"/>
+      <text class="t-title" x="950" y="100" text-anchor="middle">spaces.json</text>
+      <text class="t-small t-muted" x="950" y="117" text-anchor="middle">space_id → folder path</text>
+      <text class="t-small t-muted" x="950" y="132" text-anchor="middle">+ settings.json, logs\</text>
+
+      <rect class="box" x="860" y="170" width="180" height="70" rx="4"/>
+      <text class="t-title" x="950" y="190" text-anchor="middle">models\</text>
+      <text class="t-small t-muted" x="950" y="207" text-anchor="middle">whisper large-v3-turbo, medium</text>
+      <text class="t-small t-muted" x="950" y="222" text-anchor="middle">pyannote diarization 3.1</text>
+
+      <rect class="box" x="860" y="260" width="180" height="70" rx="4"/>
+      <text class="t-title" x="950" y="280" text-anchor="middle">env\ · ffmpeg\ · hf_token</text>
+      <text class="t-small t-muted" x="950" y="297" text-anchor="middle">Python 3.12, torch cu126</text>
+      <text class="t-small t-muted" x="950" y="312" text-anchor="middle">token: this laptop only</text>
+
+      <rect class="box" x="620" y="380" width="200" height="56" rx="4"/>
+      <text class="t-title" x="720" y="403" text-anchor="middle">RTX 4050 · 6 GB</text>
+      <text class="t-small t-muted" x="720" y="420" text-anchor="middle">about 3 GB VRAM peak · CPU fallback</text>
+
+      <!-- ===== Zone: internet, install time only (bottom right) ===== -->
+      <rect class="zone" x="600" y="490" width="460" height="110" rx="6"/>
+      <text class="zone-label" x="610" y="482">Internet · install time only</text>
+
+      <rect class="box" x="620" y="515" width="200" height="60" rx="4"/>
+      <text class="t-title" x="720" y="538" text-anchor="middle">Hugging Face</text>
+      <text class="t-small t-muted" x="720" y="556" text-anchor="middle">gated speaker model, needs the token</text>
+
+      <rect class="box" x="840" y="515" width="200" height="60" rx="4"/>
+      <text class="t-title" x="940" y="538" text-anchor="middle">GitHub release</text>
+      <text class="t-small t-muted" x="940" y="556" text-anchor="middle">pm_infra.zip for the installer</text>
+
+      <!-- ===== Edges: sources → inbox (OneDrive sync) ===== -->
+      <path class="edge edge-sync" d="M180,118 L240,118 L240,132 L285,132" marker-end="url(#arr-sync)"/>
+      <text class="lbl lbl-sync" x="186" y="112">OneDrive syncs</text>
+      <path class="edge edge-sync" d="M180,218 L240,218 L240,140 L285,140" marker-end="url(#arr-sync)"/>
+      <text class="lbl lbl-sync" x="186" y="212">drop file</text>
+      <path class="edge edge-sync" d="M180,318 L240,318 L240,184 L405,184" marker-end="url(#arr-sync)"/>
+      <text class="lbl lbl-sync" x="186" y="312">same space,</text>
+      <text class="lbl lbl-sync" x="186" y="324">shares the lock</text>
+
+      <!-- ===== Edges: tray ↔ space ===== -->
+      <path class="edge" d="M620,110 L580,110 L580,132 L515,132" marker-end="url(#arr)"/>
+      <text class="lbl" x="522" y="124" text-anchor="start">polls every 5 s</text>
+      <path class="edge" d="M620,150 L575,150 L575,400 L515,400" marker-end="url(#arr)"/>
+      <text class="lbl" x="583" y="370" transform="rotate(-90 583 370)" text-anchor="middle">deletes audio after 14 d</text>
+
+      <!-- tray → run-now -->
+      <path class="edge" d="M720,166 L720,220" marker-end="url(#arr)"/>
+      <text class="lbl" x="728" y="190">starts after popup,</text>
+      <text class="lbl" x="728" y="202">or Always</text>
+
+      <!-- transcribe.exe → run-now -->
+      <path class="edge" d="M340,204 L340,340 L560,340 L560,300 L620,300" marker-end="url(#arr)"/>
+      <text class="lbl" x="440" y="334" text-anchor="middle">double-click = same run-now</text>
+
+      <!-- run-now ↔ inbox / lock / meetings / failed -->
+      <path class="edge" d="M620,240 L590,240 L590,186 L515,186" marker-end="url(#arr)" marker-start="url(#arr)"/>
+      <text class="lbl" x="552" y="178" text-anchor="middle">takes · releases</text>
+      <path class="edge" d="M620,262 L548,262 L548,240 L515,240" marker-end="url(#arr)"/>
+      <text class="lbl" x="552" y="258" text-anchor="start">on error</text>
+      <path class="edge" d="M620,318 L545,318 L545,440 L515,440" marker-end="url(#arr)"/>
+      <text class="lbl" x="552" y="440">writes</text>
+
+      <!-- run-now → models / gpu / registry -->
+      <path class="edge" d="M820,260 L848,260 L848,205 L860,205" marker-end="url(#arr)"/>
+      <text class="lbl" x="950" y="253" text-anchor="middle">loaded for one run, then freed</text>
+      <path class="edge" d="M720,330 L720,380" marker-end="url(#arr)"/>
+      <text class="lbl" x="728" y="360">CUDA</text>
+      <path class="edge" d="M820,230 L840,230 L840,140 L860,140" marker-end="url(#arr)"/>
+      <text class="lbl" x="950" y="163" text-anchor="middle">registers an unknown space by space_id</text>
+      <path class="edge" d="M820,300 L860,300" marker-end="url(#arr)"/>
+      <text class="lbl" x="840" y="294" text-anchor="middle">reads</text>
+
+      <!-- install time -->
+      <path class="edge edge-once" d="M720,515 L720,470 L1050,470 L1050,205 L1040,205" marker-end="url(#arr-once)"/>
+      <text class="lbl" x="835" y="464" text-anchor="middle">downloads once at install, 2 GB</text>
+      <path class="edge edge-once" d="M940,515 L940,470" marker-end="url(#arr-once)"/>
+      <text class="lbl" x="1000" y="500" text-anchor="middle">app code</text>
+
+      <!-- audio stays local note -->
+      <text class="t-small t-muted" x="400" y="620" text-anchor="middle">Audio and transcripts never leave your drives. No network at run time.</text>
+    </svg>

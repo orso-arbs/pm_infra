@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 300" role="img" aria-label="A file arrives in the inbox, is checked for stability, triggers a popup, then a run that takes the lock, decodes, labels speakers, transcribes and writes the meeting folder. The original goes into the folder or to _to_delete; after 14 days audio is deleted. On failure the file goes to _failed and nothing is left in Meetings.">
+      <rect class="bg" x="0" y="0" width="1080" height="300"/>
+      <style>
+  :root { --bg:#ffffff; --fg:#1f2a28; --muted:#5d6b68; --line:#c9cfcb; --panel:#ffffff; --accent:#0f6e56; --accent-soft:#d9ece5; --warn:#b4531a; --warn-soft:#f6e3d6; --sync:#2b5ea8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0d1117; --fg:#e4e9e6; --muted:#9aa8a3; --line:#3a4542; --panel:#161b22; --accent:#4fc39f; --accent-soft:#1f3a32; --warn:#e8935d; --warn-soft:#3d2a1c; --sync:#7fa8e6; }
+  }
+  svg { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; color: var(--fg); }
+  .bg { fill: var(--bg); }
+  text { fill: currentColor; font-size: 12px; }
+  .t-mono { font-family: Consolas, "Courier New", monospace; font-size: 11px; }
+  .t-title { font-size: 13px; font-weight: 600; }
+  .t-muted { fill: var(--muted); font-size: 11px; }
+  .t-small { font-size: 10.5px; }
+  .box { fill: var(--panel); stroke: currentColor; stroke-width: 1.1; }
+  .zone { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 3; }
+  .zone-label { fill: var(--muted); font-family: Consolas, "Courier New", monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .accent { fill: var(--accent-soft); stroke: var(--accent); }
+  .warn { fill: var(--warn-soft); stroke: var(--warn); }
+  .edge { stroke: currentColor; stroke-width: 1.2; fill: none; }
+  .edge-sync { stroke: var(--sync); stroke-dasharray: 5 3; }
+  .edge-once { stroke: var(--muted); stroke-dasharray: 2 3; }
+  .lbl { font-size: 10.5px; fill: var(--muted); }
+  .lbl-sync { fill: var(--sync); }
+</style>
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="arr2-warn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--warn)"/>
+        </marker>
+      </defs>
+
+      <!-- row of states, y=70..130 -->
+      <rect class="box" x="20" y="70" width="120" height="60" rx="4"/>
+      <text class="t-title" x="80" y="94" text-anchor="middle">arrives</text>
+      <text class="t-small t-muted" x="80" y="112" text-anchor="middle">Audio Inbox\</text>
+
+      <rect class="box" x="170" y="70" width="130" height="60" rx="4"/>
+      <text class="t-title" x="235" y="90" text-anchor="middle">stable</text>
+      <text class="t-small t-muted" x="235" y="106" text-anchor="middle">size quiet 10 s</text>
+      <text class="t-small t-muted" x="235" y="120" text-anchor="middle">downloaded, not open</text>
+
+      <rect class="box accent" x="330" y="70" width="130" height="60" rx="4"/>
+      <text class="t-title" x="395" y="90" text-anchor="middle">popup</text>
+      <text class="t-small t-muted" x="395" y="106" text-anchor="middle">Now · Later · Always</text>
+      <text class="t-small t-muted" x="395" y="120" text-anchor="middle">battery respected</text>
+
+      <rect class="box" x="490" y="70" width="110" height="60" rx="4"/>
+      <text class="t-title" x="545" y="94" text-anchor="middle">lock</text>
+      <text class="t-small t-muted" x="545" y="112" text-anchor="middle">.transcribing.lock</text>
+
+      <rect class="box" x="630" y="70" width="150" height="60" rx="4"/>
+      <text class="t-title" x="705" y="90" text-anchor="middle">decode · speakers · text</text>
+      <text class="t-small t-muted" x="705" y="106" text-anchor="middle">ffmpeg → pyannote → whisper</text>
+      <text class="t-small t-muted" x="705" y="120" text-anchor="middle">55 min audio ≈ 5 min</text>
+
+      <rect class="box accent" x="810" y="70" width="130" height="60" rx="4"/>
+      <text class="t-title" x="875" y="90" text-anchor="middle">meeting folder</text>
+      <text class="t-small t-muted" x="875" y="106" text-anchor="middle">transcript.md</text>
+      <text class="t-small t-muted" x="875" y="120" text-anchor="middle">audio.m4a</text>
+
+      <rect class="box" x="970" y="70" width="90" height="60" rx="4"/>
+      <text class="t-title" x="1015" y="94" text-anchor="middle">14 days</text>
+      <text class="t-small t-muted" x="1015" y="112" text-anchor="middle">audio deleted</text>
+
+      <path class="edge" d="M140,100 L170,100" marker-end="url(#arr2)"/>
+      <path class="edge" d="M300,100 L330,100" marker-end="url(#arr2)"/>
+      <path class="edge" d="M460,100 L490,100" marker-end="url(#arr2)"/>
+      <path class="edge" d="M600,100 L630,100" marker-end="url(#arr2)"/>
+      <path class="edge" d="M780,100 L810,100" marker-end="url(#arr2)"/>
+      <path class="edge" d="M940,100 L970,100" marker-end="url(#arr2)"/>
+
+      <!-- Later loop -->
+      <path class="edge" d="M395,70 L395,40 L235,40 L235,70" marker-end="url(#arr2)"/>
+      <text class="lbl" x="315" y="34" text-anchor="middle">Later: ask again in 1 h, or when another file arrives</text>
+
+      <!-- original handling -->
+      <path class="edge" d="M705,130 L705,180" marker-end="url(#arr2)"/>
+      <rect class="box" x="570" y="180" width="270" height="52" rx="4"/>
+      <text class="t-small" x="705" y="199" text-anchor="middle">plain m4a → moved in as audio.m4a</text>
+      <text class="t-small t-muted" x="705" y="216" text-anchor="middle">anything else → transcoded, original to _to_delete\</text>
+
+      <!-- failure branch -->
+      <path class="edge" style="stroke:var(--warn)" d="M545,130 L545,200 L440,200" marker-end="url(#arr2-warn)"/>
+      <rect class="box warn" x="250" y="180" width="190" height="52" rx="4"/>
+      <text class="t-title" x="345" y="199" text-anchor="middle">_failed\ + error.log</text>
+      <text class="t-small t-muted" x="345" y="216" text-anchor="middle">nothing left in Meetings\</text>
+      <text class="lbl" x="552" y="170" text-anchor="start">any error</text>
+
+      <!-- lock note -->
+      <text class="t-small t-muted" x="545" y="262" text-anchor="middle">lock: a second laptop sees it and skips; stale after 6 h or when the owner process is gone</text>
+      <text class="t-small t-muted" x="80" y="150" text-anchor="middle">tray polls every 5 s</text>
+    </svg>
