@@ -258,10 +258,15 @@ class TrayApp:
             if (exclude_missing and missing) or (only_missing and not missing):
                 continue
             label = f"{s.name}  (missing)" if missing else s.name
-            items.append(pystray.MenuItem(label, lambda icon, item, sp=s: action(sp)))
+            items.append(pystray.MenuItem(label, self._bound(action, s)))
         if not items:
             items.append(pystray.MenuItem("(none)", None, enabled=False))
         return items
+
+    @staticmethod
+    def _bound(action, space):
+        """pystray accepts callbacks with 0, 1 or 2 parameters only; a default-argument lambda counts as 3."""
+        return lambda icon, item: action(space)
 
     def refresh_menu(self) -> None:
         if self.icon:
