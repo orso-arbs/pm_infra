@@ -20,6 +20,12 @@ goto args
 :args_done
 
 if not defined SRC if exist "%~dp0pyproject.toml" set "SRC=%~dp0"
+if not defined SRC if "%PM_INFRA_REPO%"=="OWNER/pm_infra" (
+    echo This starter does not know where to download pm_infra from yet.
+    echo Run it from a checkout, or as:  install_pm_infra.cmd --from "<folder with pyproject.toml>"
+    pause
+    exit /b 1
+)
 if not exist "%ROOT%" mkdir "%ROOT%"
 
 if defined SRC (

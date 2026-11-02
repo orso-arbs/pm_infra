@@ -18,7 +18,7 @@ import pystray
 from PIL import Image, ImageDraw
 
 from pm_infra import __version__, paths, retention
-from pm_infra.inbox import StabilityTracker, candidate_files
+from pm_infra.inbox import StabilityTracker, candidate_files, hydrate, is_cloud_only
 from pm_infra.log import get_logger
 from pm_infra.popup import UI
 from pm_infra.settings import load_settings
@@ -80,6 +80,15 @@ def plugged_in() -> bool:
     return True if b is None else bool(b.power_plugged)
 
 
+def snooze_blocks(snooze: tuple[datetime, frozenset[str]] | None, names: frozenset[str],
+                  now: datetime | None = None) -> bool:
+    """True while a *Later* answer still applies: not expired, and no file has arrived since."""
+    if snooze is None:
+        return False
+    until, seen = snooze
+    return (now or datetime.now()) < until and names <= seen
+
+
 class TrayApp:
     def __init__(self):
         self.log = get_logger("tray")
@@ -91,7 +100,8 @@ class TrayApp:
         self.prompting: set[str] = set()
         self.when_plugged: set[str] = set()
         self.missing: set[str] = set()
-        self.snoozed: dict[str, datetime] = {}
+        self.snoozed: dict[str, tuple[datetime, frozenset[str]]] = {}
+        self.hydrating: set[str] = set()
         self.busy = threading.Lock()
         self.stop = threading.Event()
         self.icon: pystray.Icon | None = None
@@ -122,7 +132,7 @@ class TrayApp:
     def watch_loop(self) -> None:
         while not self.stop.is_set():
             try:
-                if not self.busy.locked():
+                with self.busy:  # a Move waits for the poll pass to finish, and the other way round
                     self.reg.load()
                     for space in self.reg.all():
                         self.tick(space)
@@ -144,6 +154,7 @@ class TrayApp:
                 self.log.warning("space folder missing: %s (%s)", space.name, space.root)
                 self.missing.add(sid)
                 self.refresh_menu()
+                threading.Thread(target=self.ask_locate, args=(space,), daemon=True).start()
             return
         if sid in self.missing:
             self.missing.discard(sid)
@@ -151,7 +162,11 @@ class TrayApp:
         if self.settings.paused or sid in self.prompting:
             return
         tracker = self.trackers.setdefault(sid, StabilityTracker())
-        ready = [f for f in candidate_files(space.dirs.inbox) if tracker.ready(f)]
+        files = candidate_files(space.dirs.inbox)
+        for f in files:
+            if is_cloud_only(f):
+                self.hydrate_in_background(f)
+        ready = [f for f in files if tracker.ready(f)]
         if not ready:
             return
         if sid in self.when_plugged:
@@ -159,9 +174,10 @@ class TrayApp:
                 self.when_plugged.discard(sid)
                 self.start_run(space)
             return
-        until = self.snoozed.get(sid)
-        if until and datetime.now() < until:
+        names = frozenset(f.name for f in ready)
+        if snooze_blocks(self.snoozed.get(sid), names):
             return
+        self.snoozed.pop(sid, None)
         settings = load_settings(space.root)
         if settings.on_new_files.lower() == "always":
             if self.battery_ok():
@@ -170,9 +186,37 @@ class TrayApp:
                 self.when_plugged.add(sid)
             return
         self.prompting.add(sid)
-        threading.Thread(target=self.prompt, args=(space, len(ready)), daemon=True).start()
+        threading.Thread(target=self.prompt, args=(space, names), daemon=True).start()
 
-    def prompt(self, space: Space, count: int) -> None:
+    def hydrate_in_background(self, path: Path) -> None:
+        """Make OneDrive download an online-only inbox file, once, without blocking the watcher."""
+        key = str(path)
+        if key in self.hydrating:
+            return
+        self.hydrating.add(key)
+        self.log.info("asking OneDrive to download %s", path.name)
+
+        def work():
+            try:
+                hydrate(path)
+            finally:
+                self.hydrating.discard(key)
+
+        threading.Thread(target=work, name="hydrate", daemon=True).start()
+
+    def ask_locate(self, space: Space) -> None:
+        """A registered folder is gone: ask once whether to point pm_infra to its new place."""
+        yes = self.ui.call(
+            self.ui.confirm, "pm_infra: space not found",
+            f"The folder of the space '{space.name}' was not found:\n{space.root}\n\n"
+            "Was it moved or renamed? Choose Yes to pick its new location.\n"
+            "You can also do this later from the tray menu (Locate missing space).",
+        )
+        if yes:
+            self.act_locate(space)
+
+    def prompt(self, space: Space, names: frozenset[str]) -> None:
+        count = len(names)
         try:
             blocked = not self.battery_ok()
             answer = self.ui.call(self.ui.ask_new_files, space.name, count, blocked)
@@ -187,8 +231,8 @@ class TrayApp:
                     self.start_run(space)
                 else:
                     self.when_plugged.add(space.space_id)
-            else:  # later / closed
-                self.snoozed[space.space_id] = datetime.now() + SNOOZE
+            else:  # later / closed: ask again in an hour, or as soon as another file arrives
+                self.snoozed[space.space_id] = (datetime.now() + SNOOZE, names)
         finally:
             self.prompting.discard(space.space_id)
 

@@ -161,6 +161,9 @@ def process_file(
             progress("Saving audio.m4a...")
             media.to_m4a(src, audio)
             park_original(src, dirs)
+    except BaseException:
+        discard_partial(folder, [transcript] + ([audio] if src.exists() else []))
+        raise
     finally:
         try:
             wav.unlink(missing_ok=True)
@@ -172,6 +175,24 @@ def process_file(
         duration=info.duration, language=language, model=model_name, speakers=speakers,
         time_source=time_source, seconds=time.time() - t0,
     )
+
+
+def discard_partial(folder: Path, files: list[Path]) -> None:
+    """A failed run leaves nothing in Meetings/: drop what it wrote, and the folder if that empties it.
+
+    The source file goes to _failed/ and may be retried later; a leftover folder would look like
+    an unmatched meeting and a retry would produce transcript_2.md next to a half-finished one.
+    """
+    for f in files:
+        try:
+            Path(f).unlink(missing_ok=True)
+        except OSError:
+            pass
+    try:
+        if folder.is_dir() and not any(folder.iterdir()):
+            folder.rmdir()
+    except OSError:
+        pass
 
 
 def park_original(src: Path, dirs: SpaceDirs) -> Path:

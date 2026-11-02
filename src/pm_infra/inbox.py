@@ -113,6 +113,8 @@ def wait_until_ready(path: Path, timeout: float = 900.0, poll: float = 2.0, min_
     deadline = time.time() + timeout
     said = False
     while time.time() < deadline:
+        if not path.exists():
+            return False  # taken by another run or removed by hand: do not wait for it
         if is_cloud_only(path):
             if progress and not said:
                 progress(f"  waiting for OneDrive to download {path.name}...")
@@ -154,7 +156,10 @@ def run_space(
     for src in todo:
         progress(f"\n{src.name}")
         if not wait_until_ready(src, progress=progress):
-            msg = "still syncing or open elsewhere; left in the inbox"
+            if not src.exists():
+                msg = "no longer in the inbox (processed by another run?)"
+            else:
+                msg = "still syncing or open elsewhere; left in the inbox"
             progress(f"  skipped: {msg}")
             outcomes.append(Outcome(src, False, msg))
             continue

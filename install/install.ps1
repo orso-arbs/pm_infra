@@ -132,7 +132,12 @@ if ($Space) {
         Step "Personal space"
         $default = $PersonalSpace
         if (-not $default) {
-            $base = if ($env:OneDriveConsumer) { $env:OneDriveConsumer } elseif ($env:OneDrive) { $env:OneDrive } else { Join-Path $env:USERPROFILE "Documents" }
+            # The personal OneDrive. %OneDrive% can point at a business drive, so prefer the folder by name.
+            $personal = Join-Path $env:USERPROFILE "OneDrive"
+            $base = if (Test-Path $personal) { $personal }
+                    elseif ($env:OneDriveConsumer) { $env:OneDriveConsumer }
+                    elseif ($env:OneDrive) { $env:OneDrive }
+                    else { Join-Path $env:USERPROFILE "Documents" }
             $default = Join-Path $base "misc\Projects"
         }
         $chosen = $default
@@ -140,11 +145,14 @@ if ($Space) {
             $answer = Read-Host "   Folder for your personal space [$default]"
             if ($answer.Trim()) { $chosen = $answer.Trim() }
         }
+        Write-Host "   Personal space: $chosen"
         New-Item -ItemType Directory -Force -Path $chosen | Out-Null
         & $Py -m pm_infra new-space --path $chosen
         if ($LASTEXITCODE -ne 0) { Fail "could not create the personal space" }
     }
 }
+# Existing spaces get this version's transcribe.exe, starter and README.
+& $Py -m pm_infra refresh-spaces
 
 # --- 9. tray --------------------------------------------------------------------
 if (-not $NoTray) {

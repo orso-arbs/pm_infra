@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from pm_infra import paths
+from pm_infra.lock import is_stale, read_info
 from pm_infra.paths import SpaceDirs
 from pm_infra.settings import SpaceSettings, ensure_space_id, load_settings, new_space_id, save_settings
 
@@ -113,14 +114,38 @@ def create_space(root: Path, name: str | None = None, registry: Registry | None 
     return reg.put(Space(space_id=settings.space_id, path=str(root), name=settings.project))
 
 
-def place_tool_files(dirs: SpaceDirs) -> None:
-    """Copy launcher, installer starter and README into the space's pm_infra folder, if available."""
+def place_tool_files(dirs: SpaceDirs) -> list[Path]:
+    """Copy launcher, installer starter and README into the space's pm_infra folder, if available.
+
+    Only files whose content differs are written, so OneDrive sees no change on a plain re-register.
+    A file that cannot be replaced (the launcher while it is running) is skipped until next time.
+    Returns the files that were written.
+    """
     launcher = paths.bin_dir() / paths.LAUNCHER_FILE
     installer = paths.app_source() / paths.INSTALLER_FILE
     readme = paths.app_source() / "install" / "space_README.md"
+    written: list[Path] = []
     for src, dst in ((launcher, dirs.launcher), (installer, dirs.installer), (readme, dirs.readme)):
-        if src.exists():
+        if not src.exists():
+            continue
+        try:
+            if dst.exists() and dst.read_bytes() == src.read_bytes():
+                continue
             shutil.copyfile(src, dst)
+            written.append(dst)
+        except OSError:
+            continue
+    return written
+
+
+def refresh_tool_files(registry: Registry | None = None) -> list[Path]:
+    """Bring transcribe.exe, install_pm_infra.cmd and README.md up to date in every reachable space."""
+    reg = registry or Registry()
+    written: list[Path] = []
+    for space in reg.all():
+        if space.exists():
+            written.extend(place_tool_files(space.dirs))
+    return written
 
 
 def register_space(root: Path, registry: Registry | None = None) -> Space:
@@ -140,6 +165,7 @@ def register_space(root: Path, registry: Registry | None = None) -> Space:
             f"Space {settings.space_id} is already registered at {existing.root}. "
             "If this is a copy, delete the space_id line in its project_settings.yaml to make it a new space."
         )
+    place_tool_files(dirs)
     return reg.put(Space(space_id=settings.space_id, path=str(root), name=settings.project or root.name))
 
 
@@ -150,8 +176,12 @@ def move_space(space_id: str, new_parent: Path, registry: Registry | None = None
         raise SpaceError(f"Unknown space {space_id}")
     if not space.exists():
         raise SpaceError(f"Space folder is missing: {space.root}. Use Locate instead.")
-    if space.dirs.lock.exists():
-        raise SpaceError("A transcription is running in this space. Try again when it has finished.")
+    lock = space.dirs.lock
+    if lock.exists():
+        if is_stale(read_info(lock), lock):
+            lock.unlink(missing_ok=True)  # left behind by a crash; nobody is transcribing
+        else:
+            raise SpaceError("A transcription is running in this space. Try again when it has finished.")
     new_parent = Path(new_parent)
     if not new_parent.is_dir():
         raise SpaceError(f"Destination folder does not exist: {new_parent}")

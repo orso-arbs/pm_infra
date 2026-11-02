@@ -256,7 +256,8 @@ Tray → **New space…**: pick the shared folder and a name. The installer star
 ## Watcher and tray
 
 - Polls every registered space's inbox every 5 seconds (polling, not file events: OneDrive placeholders make events unreliable). Idle cost is near 0% CPU, about 50 MB RAM.
-- A file counts as arrived once its size has been stable for 10 seconds, nobody holds it open and OneDrive has downloaded it.
+- A file counts as arrived once its size has been stable for 10 seconds, nobody holds it open and OneDrive has downloaded it. If OneDrive left it online-only, the tray reads it once in the background so the download starts by itself.
+- *Later* in the popup silences that space for an hour, or until another file arrives in its inbox.
 - Asks before running: *"2 new recordings in Projects"* → Transcribe now · Later · Always for this space. On battery with *Run on battery* off, the first button becomes *Transcribe when plugged in*.
 - A run is a separate console window (`python -m pm_infra run-now`), the same code path as `transcribe.exe`, so the tray survives any crash and the model memory is freed when the window closes. The window stays open on errors.
 - Loads the models only for a run: speaker model first, freed, then Whisper (about 3 GB VRAM peak). Falls back to `medium` on GPU out-of-memory.
@@ -284,12 +285,15 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 - Two recordings of one meeting: same folder, `transcript_2.md`, one set of minutes from both.
 - Recurring events: each occurrence gets its own folder and page.
 - Recording with no event: stays unmatched until you pick or create one.
+- A failed run leaves nothing in `Meetings/`: the recording goes to `_failed/`, and a half-written folder or transcript is removed so a retry starts clean.
+- A file that disappears from the inbox while a run waits for it (taken by another install, or removed by hand) is skipped at once, not waited for.
 - Scope depends on who runs the step: a teammate running it needs the team calendar in their Notion Calendar.
 
 ## Moving a space
 
 - **Tray → Move space**: pick the space, then its new parent folder. It pauses the watcher, moves the whole space folder (refused while a transcription is running), updates the list of spaces, resumes.
-- **Moved in Explorer instead:** the app finds the registered folder missing and asks you to locate it; it recognises the space by `space_id`. Double-clicking `transcribe.exe` in the new location also re-registers it.
+- **Moved in Explorer instead:** the tray notices the registered folder is missing and asks once whether to locate it (a Yes/No box, then a folder picker); it recognises the space by `space_id`. Decline, and *Locate missing space* stays in the tray menu. Double-clicking `transcribe.exe` in the new location also re-registers it.
+- **Move space** refuses while a transcription is running; a lock older than six hours, or left by a process that no longer exists, is treated as a crash leftover and cleared.
 - **Afterwards:** update the inbox path in the iPhone Shortcut (one variable). Teammates' installs re-register the same way.
 - **Constraint:** the personal space must stay where the phone can upload to (inside OneDrive).
 
@@ -311,6 +315,10 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 | No speaker labels, header says `speakers: none` | No Hugging Face token, or the model terms weren't accepted. Save the token to `%LOCALAPPDATA%\pm_infra\hf_token` and run `install-models` (or the installer) again. |
 | `transcribe.exe` says pm_infra isn't installed | Run `install_pm_infra.cmd` next to it. |
 | Phone recordings stop arriving after a move | Update the inbox path variable in the Shortcut. |
+| `install-models` fails with `WinError 1314` (privilege not held) | Plain Windows accounts may not create symlinks. pm_infra decides that once per run and makes Hugging Face copy files instead, and retries interrupted downloads four times. Developer Mode is not needed; re-run `install-models`. |
+| `error.log` shows a `TypeError` from PyAV / `av` while decoding | faster-whisper's own decoder broke with PyAV 19; pm_infra reads the 16 kHz wav itself and hands samples to Whisper. Update pm_infra (re-run the installer). |
+| Tray crashes on start, log says a menu callback was rejected | pystray accepts callbacks with at most two parameters (icon, item). Fixed on 2 Nov 2026; update pm_infra. |
+| `transcribe.exe` in a space is older than the installed app | Run `refresh-spaces` (the installer does it on every run) to update the launcher, starter and README in every registered space. |
 
 ## Roadmap
 
@@ -342,7 +350,7 @@ docs/diagrams/                 diagram sources (.mmd) and renders (.png)
 docs/design/                   design iterations (local only, not in git: contains personal calendar data)
 ```
 
-Command line (`%LOCALAPPDATA%\pm_infra\env\Scripts\python.exe -m pm_infra ...`): `run-now --space <folder>`, `tray`, `new-space`, `register`, `list`, `cleanup`, `install-models`, `setup-windows [--remove]`, `version`.
+Command line (`%LOCALAPPDATA%\pm_infra\env\Scripts\python.exe -m pm_infra ...`): `run-now --space <folder>`, `tray`, `new-space`, `register`, `list`, `refresh-spaces`, `cleanup`, `install-models`, `setup-windows [--remove]`, `version`.
 
 Tests: `uv sync --frozen` then `uv run pytest` (the engine is covered by a real recording, not by tests).
 
@@ -364,3 +372,7 @@ Tests: `uv sync --frozen` then `uv run pytest` (the engine is covered by a real 
 - Non-m4a originals (mp3, wav, video) go to `_to_delete/` after transcoding, same 14 days.
 - Transcript header gained `time_source`; *Later* in the popup snoozes a space for one hour; the tray has Quit, Transcribe now and Open log folder.
 - Popup default stays *ask* (`on_new_files: ask`).
+- Models: `huggingface_hub`'s symlink check is settled once before any download, so plain Windows accounts get copies instead of a `WinError 1314` crash; downloads retry up to four times (2 Nov 2026).
+- Whisper receives samples read with `soundfile` from the 16 kHz wav, not a file path: faster-whisper's PyAV-based decoder broke with `av` 19 (2 Nov 2026).
+- pystray menu callbacks take exactly `(icon, item)`; bound actions go through `TrayApp._bound` (2 Nov 2026).
+- Review against the v1 brief (2 Nov 2026): a failed run leaves nothing in `Meetings/`; a vanished inbox file is skipped at once; the tray asks once to locate a missing space, downloads online-only inbox files in the background, and *Later* ends when another file arrives; *Move space* clears a stale lock and waits for the current poll pass; `register` and the new `refresh-spaces` command put the current `transcribe.exe`, starter and README into every space; the installer's default personal space is `%USERPROFILE%\OneDrive\misc\Projects` (the personal drive by folder name, since `%OneDrive%` may be the business drive).

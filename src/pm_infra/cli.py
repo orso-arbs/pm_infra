@@ -84,6 +84,14 @@ def cmd_register(args) -> int:
     return 0
 
 
+def cmd_refresh_spaces(args) -> int:
+    from pm_infra.spaces import refresh_tool_files
+
+    written = refresh_tool_files()
+    _say(f"{len(written)} tool file(s) updated in registered spaces.")
+    return 0
+
+
 def cmd_list(args) -> int:
     from pm_infra.spaces import Registry
 
@@ -156,6 +164,9 @@ def build_parser() -> argparse.ArgumentParser:
     g.set_defaults(fn=cmd_register)
 
     sub.add_parser("list", help="list registered spaces").set_defaults(fn=cmd_list)
+
+    sub.add_parser("refresh-spaces", help="update transcribe.exe, the starter and README in every space") \
+        .set_defaults(fn=cmd_refresh_spaces)
 
     c = sub.add_parser("cleanup", help="apply audio retention now")
     c.add_argument("--space")
