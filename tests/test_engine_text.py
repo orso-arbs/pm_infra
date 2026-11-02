@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import datetime
 
 from pm_infra.engine import Segment, assign_speakers, hms, render_transcript
@@ -56,3 +58,21 @@ def test_settle_symlink_support_matches_probe(tmp_path):
             assert file_download.are_symlinks_supported(str(tmp_path)) is False
     finally:
         file_download.are_symlinks_supported = original
+
+
+def test_read_wav16k_returns_mono_float32(tmp_path):
+    import numpy as np
+    import soundfile as sf
+
+    from pm_infra import engine
+
+    stereo = np.zeros((1600, 2), dtype="float32")
+    stereo[:, 0] = 0.5
+    sf.write(tmp_path / "s.wav", stereo, 16000)
+    out = engine.read_wav16k(tmp_path / "s.wav")
+    assert out.shape == (1600,) and out.dtype == np.float32
+    assert abs(float(out[0]) - 0.25) < 1e-6
+
+    sf.write(tmp_path / "bad.wav", np.zeros(4410, dtype="float32"), 44100)
+    with pytest.raises(ValueError):
+        engine.read_wav16k(tmp_path / "bad.wav")

@@ -196,12 +196,16 @@ def transcribe(wav: Path, language: str | None, progress: Progress, duration: fl
     if not use_gpu:
         progress("No CUDA GPU found: transcribing on the CPU, this will be slow.")
 
+    # Hand faster-whisper samples instead of a path: its own decoder goes through PyAV,
+    # whose API changes between releases (av 19 broke it). The wav is already 16 kHz mono.
+    audio = read_wav16k(wav)
+
     for model_name in (PRIMARY_MODEL, FALLBACK_MODEL):
         model = None
         try:
             model = _load_whisper(WhisperModel, model_name, device, compute)
             segs, info = model.transcribe(
-                str(wav), language=language, vad_filter=True, beam_size=5, condition_on_previous_text=False,
+                audio, language=language, vad_filter=True, beam_size=5, condition_on_previous_text=False,
             )
             out: list[Segment] = []
             report_every = max(120.0, duration / 8) if duration else 120.0
@@ -225,6 +229,16 @@ def transcribe(wav: Path, language: str | None, progress: Progress, duration: fl
             del model
             _free(torch)
     raise RuntimeError("transcription failed")
+
+
+def read_wav16k(wav: Path):
+    """Mono float32 samples of a 16 kHz wav, the form faster-whisper accepts directly."""
+    import soundfile as sf
+
+    data, sr = sf.read(str(wav), dtype="float32", always_2d=True)
+    if sr != 16000:
+        raise ValueError(f"expected a 16 kHz wav, got {sr} Hz: {wav.name}")
+    return data.mean(axis=1) if data.shape[1] > 1 else data[:, 0]
 
 
 def _load_whisper(WhisperModel, name: str, device: str, compute: str):
