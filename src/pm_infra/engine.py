@@ -56,6 +56,7 @@ class RunResult:
 def prepare_runtime():
     """Environment for model loading; returns the torch module."""
     os.environ.setdefault("HF_HOME", str(paths.models_dir()))
+    os.environ.setdefault("PYANNOTE_CACHE", str(paths.models_dir() / "pyannote"))  # not ~/.cache/torch/pyannote
     os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
     os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
     settle_symlink_support(paths.models_dir())
@@ -64,7 +65,22 @@ def prepare_runtime():
     lib = Path(torch.__file__).parent / "lib"
     if lib.is_dir() and hasattr(os, "add_dll_directory"):
         os.add_dll_directory(str(lib))  # ctranslate2 finds cuDNN/cuBLAS that torch ships
+    allow_pyannote_checkpoints(torch)
     return torch
+
+
+def allow_pyannote_checkpoints(torch) -> None:
+    """Let torch>=2.6 load pyannote 3.x checkpoints without turning the weights-only check off.
+
+    torch.load now refuses pickled objects it does not know. The speaker model's checkpoints carry
+    exactly these four classes (the torch version they were saved with and pyannote's task
+    description), so they are allowlisted by name; everything else stays blocked.
+    """
+    try:
+        from pyannote.audio.core.task import Problem, Resolution, Specifications
+    except ImportError:  # pyannote not installed: no speaker labels, nothing to allow
+        return
+    torch.serialization.add_safe_globals([torch.torch_version.TorchVersion, Specifications, Problem, Resolution])
 
 
 def symlinks_work(folder: Path) -> bool:
