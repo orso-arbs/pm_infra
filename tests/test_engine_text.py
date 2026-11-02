@@ -38,3 +38,21 @@ def test_render_without_speakers():
 
 def test_hms():
     assert hms(0) == "00:00:00" and hms(3661.9) == "01:01:01"
+
+
+def test_settle_symlink_support_matches_probe(tmp_path):
+    from huggingface_hub import file_download
+
+    from pm_infra import engine
+
+    original = file_download.are_symlinks_supported
+    try:
+        ok = engine.settle_symlink_support(tmp_path / "models")
+        assert ok == engine.symlinks_work(tmp_path / "models")
+        assert not list((tmp_path / "models").iterdir())  # probe cleaned up
+        if ok:
+            assert file_download.are_symlinks_supported is original
+        else:
+            assert file_download.are_symlinks_supported(str(tmp_path)) is False
+    finally:
+        file_download.are_symlinks_supported = original

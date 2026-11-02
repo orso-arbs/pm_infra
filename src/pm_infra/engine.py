@@ -58,12 +58,44 @@ def prepare_runtime():
     os.environ.setdefault("HF_HOME", str(paths.models_dir()))
     os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
     os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+    settle_symlink_support(paths.models_dir())
     import torch  # noqa: WPS433  (heavy import on purpose, only when a run starts)
 
     lib = Path(torch.__file__).parent / "lib"
     if lib.is_dir() and hasattr(os, "add_dll_directory"):
         os.add_dll_directory(str(lib))  # ctranslate2 finds cuDNN/cuBLAS that torch ships
     return torch
+
+
+def symlinks_work(folder: Path) -> bool:
+    """True if this user may create symlinks in folder (needs Developer Mode or admin on Windows)."""
+    folder.mkdir(parents=True, exist_ok=True)
+    probe = folder / f".symlink_probe_{os.getpid()}"
+    try:
+        probe.symlink_to("nothing")
+        return True
+    except OSError:
+        return False
+    finally:
+        try:
+            probe.unlink()
+        except OSError:
+            pass
+
+
+def settle_symlink_support(models_dir: Path) -> bool:
+    """Tell huggingface_hub up front whether symlinks work in the models folder.
+
+    Its own check marks a folder as "supported" before testing it, so parallel download
+    threads can read the flag too early and crash with WinError 1314 on a plain Windows
+    user account. Deciding once here makes every download fall back to copies instead.
+    """
+    ok = symlinks_work(models_dir)
+    if not ok:
+        from huggingface_hub import file_download
+
+        file_download.are_symlinks_supported = lambda cache_dir=None: False
+    return ok
 
 
 def _free(torch) -> None:
@@ -284,13 +316,25 @@ def render_transcript(
     return "\n".join(head + body) + "\n"
 
 
+def _retry(action, progress: Progress, attempts: int = 4, pause: float = 5.0):
+    """Run action again on network errors; downloads resume where they stopped."""
+    for n in range(1, attempts + 1):
+        try:
+            return action()
+        except Exception as exc:  # noqa: BLE001  (requests/urllib3 raise many types)
+            if n == attempts:
+                raise
+            progress(f"  download interrupted ({type(exc).__name__}), retrying in {pause:.0f} s ({n}/{attempts - 1})")
+            time.sleep(pause)
+
+
 def install_models(progress: Progress = print, token: str | None = None) -> None:
     torch = prepare_runtime()
     from faster_whisper.utils import download_model
 
     for name in (PRIMARY_MODEL, FALLBACK_MODEL):
         progress(f"Whisper model {name}...")
-        download_model(name, cache_dir=str(paths.models_dir()))
+        _retry(lambda: download_model(name, cache_dir=str(paths.models_dir())), progress)
     if token:
         progress(f"Speaker model {DIARIZATION_MODEL}...")
         from pyannote.audio import Pipeline
