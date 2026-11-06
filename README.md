@@ -231,9 +231,14 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
    - Speaker count is over-split (7-8 found in meetings of fewer people). `transcribe.speakers` (number or range) added on 6 Nov 2026; still to compare against `auto` on the lab recordings.
    - Whisper drifts into lowercase, unpunctuated stretches for a few lines at a time. Try an initial prompt and compare decoding options.
    - Transcript layout: option for one line per segment instead of merging a speaker's consecutive segments (lecture-style recordings read better that way).
-4. Team spaces: calendar picker for `calendar_scope`, update checks.
-5. v2: `minutes` skill, Notion writing, Unmatched list, `minutes.md` snapshot, folder rename.
-6. Add-ons: Control Center button, refresh minutes from Notion, Teams instead of Notion.
+4. Hardening before the first teammate install (the code itself opens no ports and holds no secrets; the risk sits in the update path):
+   - Pin uv and ffmpeg to fixed versions in `install.ps1` and verify their SHA-256 before unpacking; publish the hash of each `pm_infra.zip` release and have the starter check it.
+   - Pre-push hook or CI check that refuses commits containing token patterns (`hf_...`), absolute user paths or media files.
+   - Release only from tags built by the GitHub workflow; two-factor authentication on the GitHub account that owns the repo.
+   - Installer: show what it is about to download and from where, and refuse to continue on a hash mismatch rather than warn.
+5. Team spaces: calendar picker for `calendar_scope`, update checks.
+6. v2: `minutes` skill, Notion writing, Unmatched list, `minutes.md` snapshot, folder rename.
+7. Add-ons: Control Center button, refresh minutes from Notion, Teams instead of Notion.
 
 ## Repository
 
