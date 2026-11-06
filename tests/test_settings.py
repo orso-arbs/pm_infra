@@ -45,3 +45,22 @@ def test_unknown_keys_survive_in_extra(tmp_path):
     SpaceDirs(tmp_path).tool.mkdir(parents=True)
     SpaceDirs(tmp_path).settings.write_text("project: T\nfuture_key: 1\n", encoding="utf-8")
     assert load_settings(tmp_path).extra == {"future_key": 1}
+
+
+def test_speakers_setting_roundtrip_and_parse(tmp_path):
+    from pm_infra.settings import parse_speakers
+
+    assert parse_speakers("auto") == (None, None)
+    assert parse_speakers(None) == (None, None)
+    assert parse_speakers("4") == (4, 4)
+    assert parse_speakers(4) == (4, 4)
+    assert parse_speakers("2-6") == (2, 6)
+    assert parse_speakers("6-2") == (2, 6)
+    assert parse_speakers("0") == (None, None)
+    assert parse_speakers("lots") == (None, None)
+    s = SpaceSettings(space_id="x", project="P", speakers="4")
+    save_settings(tmp_path, s)
+    back = load_settings(tmp_path)
+    assert back.speakers == "4" and back.speaker_bounds == (4, 4)
+    assert "speakers: 4" in SpaceDirs(tmp_path).settings.read_text(encoding="utf-8")
+    assert load_settings(tmp_path / "nowhere").speaker_bounds == (None, None)

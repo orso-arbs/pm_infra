@@ -16,6 +16,7 @@ from pm_infra.paths import SpaceDirs
 DEFAULT_LANGUAGE = "auto"
 DEFAULT_ON_NEW_FILES = "ask"
 DEFAULT_RETENTION_DAYS = 14
+DEFAULT_SPEAKERS = "auto"
 
 TEMPLATE = """\
 space_id: {space_id}                    # set at creation, never edit; identifies the space after a move
@@ -25,6 +26,7 @@ fallback_database: {fallback_database}  # minutes for events without a Notion pa
 transcribe:
   default_language: {default_language}  # auto | de | en | it
   on_new_files: {on_new_files}          # ask | always
+  speakers: {speakers}                  # auto | a number (4) | a range (2-6): how many people talk
 minutes:
   snapshot_to_folder: {snapshot_to_folder}  # write minutes.md (v2)
 audio_retention_days: {audio_retention_days}
@@ -43,6 +45,7 @@ class SpaceSettings:
     fallback_database: str | None = None
     default_language: str = DEFAULT_LANGUAGE
     on_new_files: str = DEFAULT_ON_NEW_FILES
+    speakers: str = DEFAULT_SPEAKERS
     snapshot_to_folder: bool = True
     audio_retention_days: int = DEFAULT_RETENTION_DAYS
     extra: dict = field(default_factory=dict)
@@ -60,6 +63,7 @@ class SpaceSettings:
             fallback_database=_str_or_none(data.pop("fallback_database", None)),
             default_language=str(transcribe.get("default_language") or DEFAULT_LANGUAGE),
             on_new_files=str(transcribe.get("on_new_files") or DEFAULT_ON_NEW_FILES),
+            speakers=str(transcribe.get("speakers") or DEFAULT_SPEAKERS),
             snapshot_to_folder=bool(minutes.get("snapshot_to_folder", True)),
             audio_retention_days=int(retention if retention is not None else DEFAULT_RETENTION_DAYS),
         )
@@ -80,6 +84,7 @@ class SpaceSettings:
             fallback_database=self.fallback_database or "",
             default_language=self.default_language,
             on_new_files=self.on_new_files,
+            speakers=self.speakers,
             snapshot_to_folder="true" if self.snapshot_to_folder else "false",
             audio_retention_days=self.audio_retention_days,
         )
@@ -88,6 +93,26 @@ class SpaceSettings:
     def language_or_none(self) -> str | None:
         lang = (self.default_language or "auto").strip().lower()
         return None if lang in ("", "auto") else lang
+
+    @property
+    def speaker_bounds(self) -> tuple[int | None, int | None]:
+        return parse_speakers(self.speakers)
+
+
+def parse_speakers(value) -> tuple[int | None, int | None]:
+    """'auto' -> (None, None); '4' -> (4, 4); '2-6' -> (2, 6). Anything unreadable counts as auto."""
+    text = str(value if value is not None else "").strip().lower()
+    if text in ("", "auto", "none"):
+        return None, None
+    lo, sep, hi = text.partition("-")
+    try:
+        if sep:
+            a, b = int(lo), int(hi)
+            return (min(a, b), max(a, b)) if a > 0 and b > 0 else (None, None)
+        n = int(lo)
+        return (n, n) if n > 0 else (None, None)
+    except ValueError:
+        return None, None
 
 
 def _str_or_none(v) -> str | None:

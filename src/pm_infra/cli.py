@@ -51,9 +51,14 @@ def cmd_run_now(args) -> int:
     settings = load_settings(root)
     files = [Path(f) for f in args.file] if args.file else None
     token = None if args.no_speakers else paths.read_token()
+    speakers = None
+    if args.speakers:
+        from pm_infra.settings import parse_speakers
+
+        speakers = parse_speakers(args.speakers)
     _say(f"Space: {space.name}  ({root})")
     outcomes = run_space(root, settings, progress=_say, files=files, token=token,
-                         with_speakers=not args.no_speakers, logger=log)
+                         with_speakers=not args.no_speakers, logger=log, speakers=speakers)
     failed = [o for o in outcomes if not o.ok]
     if outcomes:
         _say(f"\n{len(outcomes) - len(failed)} transcribed, {len(failed)} skipped or failed.")
@@ -150,6 +155,8 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--pause", choices=["always", "error", "never"], default="never",
                    help="wait for Enter before closing the console")
     r.add_argument("--no-speakers", action="store_true", help="skip speaker labels")
+    r.add_argument("--speakers", help="how many people talk: a number (4) or a range (2-6); "
+                                      "overrides transcribe.speakers in project_settings.yaml")
     r.set_defaults(fn=cmd_run_now)
 
     sub.add_parser("tray", help="run the tray app").set_defaults(fn=cmd_tray)

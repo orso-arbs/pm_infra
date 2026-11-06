@@ -94,10 +94,13 @@ fallback_database: <Notion link>   # minutes for events without a Notion page
 transcribe:
   default_language: auto           # auto | de | en | it
   on_new_files: ask                # ask | always
+  speakers: auto                   # auto | a number (4) | a range (2-6): how many people talk
 minutes:
   snapshot_to_folder: true         # write minutes.md
 audio_retention_days: 14         # 0 keeps audio forever
 ```
+
+`speakers` is a hint for the speaker model: with `auto` it tends to split one person into two or three labels when their voice or distance to the microphone changes; a number or range fixes that when you know who was in the room. `run-now --speakers 4` overrides it for one run.
 
 The personal space uses `calendar_scope: all`. The app rewrites this file from a template when it changes a value (for example *Always for this space*), so the comments survive.
 
@@ -225,7 +228,7 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 2. iPhone Shortcut (built by hand from this README).
 3. Engine tuning after the first real recordings (can come before v2; measured on 6 Nov 2026):
    - Speaker step is the main cost (55 min audio: 4.8 min without speakers, 15.7 min with) and leaves the GPU at 10-25% busy. Try larger segmentation/embedding batch sizes for pyannote, and its newer community model; time before and after on one recording.
-   - Speaker count is over-split (7-8 found in meetings of fewer people). Try a `speakers_min`/`speakers_max` hint in `project_settings.yaml`.
+   - Speaker count is over-split (7-8 found in meetings of fewer people). `transcribe.speakers` (number or range) added on 6 Nov 2026; still to compare against `auto` on the lab recordings.
    - Whisper drifts into lowercase, unpunctuated stretches for a few lines at a time. Try an initial prompt and compare decoding options.
    - Transcript layout: option for one line per segment instead of merging a speaker's consecutive segments (lecture-style recordings read better that way).
 4. Team spaces: calendar picker for `calendar_scope`, update checks.

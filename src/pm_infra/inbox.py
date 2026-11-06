@@ -145,6 +145,7 @@ def run_space(
     token: str | None = None,
     with_speakers: bool = True,
     logger=None,
+    speakers: tuple[int | None, int | None] | None = None,
 ) -> list[Outcome]:
     dirs = SpaceDirs(space_root)
     dirs.ensure()
@@ -172,7 +173,7 @@ def run_space(
             continue
         try:
             result = engine.process_file(src, space_root, settings, progress=lambda m: progress(f"  {m}"),
-                                         token=token, with_speakers=with_speakers)
+                                         token=token, with_speakers=with_speakers, speakers=speakers)
             progress(f"  done in {result.seconds / 60:.1f} min -> {result.meeting_dir.name}\\{result.transcript.name}")
             if logger:
                 logger.info("transcribed %s -> %s (%.0fs, %s, speakers=%s)", src.name, result.transcript,

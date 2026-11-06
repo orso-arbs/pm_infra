@@ -127,8 +127,10 @@ def process_file(
     progress: Progress = print,
     token: str | None = None,
     with_speakers: bool = True,
+    speakers: tuple[int | None, int | None] | None = None,
 ) -> RunResult:
     t0 = time.time()
+    bounds = speakers if speakers is not None else settings.speaker_bounds
     src = Path(src)
     dirs = SpaceDirs(space_root)
     dirs.ensure()
@@ -152,9 +154,11 @@ def process_file(
         torch = prepare_runtime()
         turns: list[tuple[float, float, str]] | None = None
         if with_speakers and token:
-            progress("Finding speakers...")
+            lo, hi = bounds
+            hint = f" (expecting {lo})" if lo and lo == hi else f" (expecting {lo or 1}-{hi or 'many'})" if (lo or hi) else ""
+            progress(f"Finding speakers{hint}...")
             try:
-                turns = diarize(wav, token, torch)
+                turns = diarize(wav, token, torch, bounds)
             except Exception as e:  # diarization is optional; the transcript still gets written
                 progress(f"Speaker labels skipped: {str(e).splitlines()[0][:200]}")
                 turns = None
@@ -286,7 +290,8 @@ def _load_whisper(WhisperModel, name: str, device: str, compute: str):
         return WhisperModel(name, device=device, compute_type=compute, download_root=root)
 
 
-def diarize(wav: Path, token: str, torch) -> list[tuple[float, float, str]]:
+def diarize(wav: Path, token: str, torch,
+            bounds: tuple[int | None, int | None] = (None, None)) -> list[tuple[float, float, str]]:
     import numpy as np  # noqa: F401  (soundfile needs it)
     import soundfile as sf
     from pyannote.audio import Pipeline
@@ -301,7 +306,11 @@ def diarize(wav: Path, token: str, torch) -> list[tuple[float, float, str]]:
         pipe.to(torch.device("cuda"))
     data, sr = sf.read(str(wav), dtype="float32", always_2d=True)
     waveform = torch.from_numpy(data.T.copy())
-    result = pipe({"waveform": waveform, "sample_rate": sr})
+    lo, hi = bounds
+    kwargs = {"num_speakers": lo} if lo and lo == hi else {
+        k: v for k, v in (("min_speakers", lo), ("max_speakers", hi)) if v
+    }
+    result = pipe({"waveform": waveform, "sample_rate": sr}, **kwargs)
     annotation = getattr(result, "speaker_diarization", result)
     turns = [(float(t.start), float(t.end), str(spk)) for t, _, spk in annotation.itertracks(yield_label=True)]
     del pipe, result, annotation, waveform
