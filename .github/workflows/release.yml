@@ -15,8 +15,11 @@ jobs:
       - name: Build release archive
         run: |
           mkdir -p out
-          zip -r out/pm_infra.zip . -x ".git/*" ".github/*" "docs/design/*" "tests/*" "*.pyc" "__pycache__/*"
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: out/pm_infra.zip
-          generate_release_notes: true
+          zip -r out/pm_infra.zip . -x ".git/*" ".github/*" "docs/design/*" "tests/*" "*.pyc" "__pycache__/*" "out/*"
+          sha256sum out/pm_infra.zip | tee out/pm_infra.zip.sha256
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/pm_infra.zip out/pm_infra.zip.sha256 \
+            --title "pm_infra $GITHUB_REF_NAME" --generate-notes
