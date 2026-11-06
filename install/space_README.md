@@ -13,4 +13,4 @@ pm_infra turns meeting recordings into transcripts, filed one folder per meeting
 Transcripts land next to this folder in **Meetings/**, one folder per recording named `YYYY-MM-DD_HHMM_<name>`,
 with `audio.m4a` (deleted after 14 days) and `transcript.md`.
 
-Audio never leaves your drives. Project page: https://github.com/OWNER/pm_infra
+Audio never leaves your drives. Project page: https://github.com/orso-arbs/pm_infra

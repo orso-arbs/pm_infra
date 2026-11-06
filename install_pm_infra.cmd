@@ -6,7 +6,7 @@ rem   install_pm_infra.cmd --from <folder>  install from a local checkout (devel
 rem Run it from a space's pm_infra\ folder to register that space on this laptop.
 rem No admin rights are needed or requested.
 
-set "PM_INFRA_REPO=OWNER/pm_infra"
+set "PM_INFRA_REPO=orso-arbs/pm_infra"
 set "ROOT=%LOCALAPPDATA%\pm_infra"
 set "SRC="
 set "EXTRA="
