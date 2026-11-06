@@ -223,9 +223,14 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 
 1. v1 (built): installer, tray app with watcher and popup, `transcribe`, personal space, New space (with `calendar_scope: all`), meeting folders, audio retention, `space_id` and Move space.
 2. iPhone Shortcut (built by hand from this README).
-3. Team spaces: calendar picker for `calendar_scope`, update checks.
-4. v2: `minutes` skill, Notion writing, Unmatched list, `minutes.md` snapshot, folder rename.
-5. Add-ons: Control Center button, refresh minutes from Notion, Teams instead of Notion.
+3. Engine tuning after the first real recordings (can come before v2; measured on 6 Nov 2026):
+   - Speaker step is the main cost (55 min audio: 4.8 min without speakers, 15.7 min with) and leaves the GPU at 10-25% busy. Try larger segmentation/embedding batch sizes for pyannote, and its newer community model; time before and after on one recording.
+   - Speaker count is over-split (7-8 found in meetings of fewer people). Try a `speakers_min`/`speakers_max` hint in `project_settings.yaml`.
+   - Whisper drifts into lowercase, unpunctuated stretches for a few lines at a time. Try an initial prompt and compare decoding options.
+   - Transcript layout: option for one line per segment instead of merging a speaker's consecutive segments (lecture-style recordings read better that way).
+4. Team spaces: calendar picker for `calendar_scope`, update checks.
+5. v2: `minutes` skill, Notion writing, Unmatched list, `minutes.md` snapshot, folder rename.
+6. Add-ons: Control Center button, refresh minutes from Notion, Teams instead of Notion.
 
 ## Repository
 
