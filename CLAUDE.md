@@ -7,6 +7,7 @@ A local meeting-transcription suite for one Windows laptop, with optional team s
 - Windows 11, PowerShell 7.6, Dell XPS 15, RTX 4050 Laptop (6 GB VRAM), 32 GB RAM.
 - Never require admin rights.
 - Never modify the conda env `misc_ml`; pm_infra has its own environment under `%LOCALAPPDATA%\pm_infra\`.
+- That environment runs the *installed* copy (`%LOCALAPPDATA%\pm_infra\app`), not this checkout. To run tests or try a change against the checkout, set `PYTHONPATH=src`; to make the installed tray and launcher use a change, re-run `install_pm_infra.cmd --from <checkout>` (it also removes pytest from the environment; re-add it with `uv pip install`, see README *Repository*).
 - Paths contain spaces (OneDrive). Quote every path.
 - Conda + PowerShell quirk: if `conda install` errors with "invalid choice: ''", run `$Env:_CE_M=$null; $Env:_CE_CONDA=$null`.
 

@@ -259,7 +259,14 @@ docs/design/                   design iterations (local only, not in git: contai
 
 Command line (`%LOCALAPPDATA%\pm_infra\env\Scripts\python.exe -m pm_infra ...`): `run-now --space <folder>`, `tray`, `new-space`, `register`, `list`, `refresh-spaces`, `cleanup`, `install-models`, `setup-windows [--remove]`, `version`.
 
-Tests: `uv sync --frozen` then `uv run pytest` (the engine is covered by a real recording, not by tests).
+Tests, on a laptop where pm_infra is installed (no second environment needed):
+
+```powershell
+& "$env:LOCALAPPDATA\pm_infra\uv\uv.exe" pip install --python "$env:LOCALAPPDATA\pm_infra\env\Scripts\python.exe" "pytest>=8"   # once
+$env:PYTHONPATH = "src"; & "$env:LOCALAPPDATA\pm_infra\env\Scripts\python.exe" -m pytest -q
+```
+
+`PYTHONPATH=src` makes the tests import the checkout instead of the installed copy under `app\`. The installer removes pytest again (`uv sync --no-dev`); re-add it after each installer run. Without an install, `uv sync --frozen` then `uv run pytest` builds a separate environment (about 3 GB, PyTorch). The engine is covered by real recordings, not by tests.
 
 ## Decisions log
 
