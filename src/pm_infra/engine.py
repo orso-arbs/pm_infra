@@ -11,6 +11,7 @@ import os
 import shutil
 import time
 import uuid
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -53,8 +54,24 @@ class RunResult:
     seconds: float
 
 
+def quiet_libraries() -> None:
+    """Hide the libraries' routine warnings so the run window shows only what matters.
+
+    torchaudio prints a deprecation notice on import, pyannote one about TF32 and one from a
+    pooling layer on short clips, none of which the user can act on. Errors still come through.
+    """
+    for module in ("torchaudio", "pyannote", "speechbrain", "lightning", "pytorch_lightning", "torch"):
+        warnings.filterwarnings("ignore", category=UserWarning, module=rf"{module}(\..*)?$")
+        warnings.filterwarnings("ignore", category=FutureWarning, module=rf"{module}(\..*)?$")
+    warnings.filterwarnings("ignore", message=r".*TensorFloat-32.*")
+    warnings.filterwarnings("ignore", message=r".*list_audio_backends.*")
+    warnings.filterwarnings("ignore", message=r".*degrees of freedom is <= 0.*")
+    os.environ.setdefault("PYTHONWARNINGS", "ignore::UserWarning:torchaudio")
+
+
 def prepare_runtime():
     """Environment for model loading; returns the torch module."""
+    quiet_libraries()
     os.environ.setdefault("HF_HOME", str(paths.models_dir()))
     os.environ.setdefault("PYANNOTE_CACHE", str(paths.models_dir() / "pyannote"))  # not ~/.cache/torch/pyannote
     os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
