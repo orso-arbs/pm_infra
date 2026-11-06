@@ -50,7 +50,7 @@ def test_run_space_success_path(space, monkeypatch):
     monkeypatch.setattr(inbox, "wait_until_ready", lambda *a, **k: True)
     seen = {}
 
-    def fake(path, root, settings, progress, token, with_speakers):
+    def fake(path, root, settings, progress, token, with_speakers, **kw):
         assert space.dirs.lock.exists()  # lock held during the run
         seen["file"] = path
         meeting = space.dirs.meetings / "2026-10-28_1802_ok"
