@@ -346,7 +346,7 @@ class TrayApp:
         self.trackers.pop(space.space_id, None)
         self.log.info("moved space %s to %s", moved.name, moved.root)
         self.ui.call(self.ui.info, "Move space",
-                     f"{moved.name} now lives at:\n{moved.root}\n\nRemember to update the inbox path in the iPhone Shortcut.")
+                     f"{moved.name} now lives at:\n{moved.root}\n\nNext time the iPhone Shortcut runs, pick the inbox at its new location in the Save File picker.")
         self.refresh_menu()
 
     def act_locate(self, space: Space):

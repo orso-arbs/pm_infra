@@ -142,7 +142,7 @@ Tray → **New space…**: pick the shared folder and a name. The installer star
 
 1. Receive the recording (Voice Memos share sheet, or the end of "Record Audio").
 2. Rename it to `<creation date yyyy-MM-dd_HHmm>_<memo title>`.
-3. Save it to the personal space's `Audio Inbox/`. The inbox path is a single variable at the top of the Shortcut, so a moved space means one edit. If you're in team spaces, a menu offers them, personal first.
+3. Save it with the *Save File* action, **Ask Where To Save left on**: iOS lets a Shortcut write silently only to iCloud Drive, so a OneDrive folder is reachable only through the Files picker at run time. The first run you browse to OneDrive › misc › Projects › pm_infra › Audio Inbox; later runs open the picker in that folder, one tap on Open. A moved space means picking the new folder once. The same picker reaches team spaces.
 4. Notify "Sent".
 
 ## Daily use
@@ -215,7 +215,7 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 | Tray says a space is missing | It was moved or renamed; choose *Locate missing space* and point to its new folder. |
 | No speaker labels, header says `speakers: none` | No Hugging Face token, or the model terms weren't accepted. Save the token to `%LOCALAPPDATA%\pm_infra\hf_token` and run `install-models` (or the installer) again. |
 | `transcribe.exe` says pm_infra isn't installed | Run `install_pm_infra.cmd` next to it. |
-| Phone recordings stop arriving after a move | Update the inbox path variable in the Shortcut. |
+| Phone recordings stop arriving after a move | In the Shortcut's Save File picker, browse to the inbox at its new location once. |
 | `install-models` fails with `WinError 1314` (privilege not held) | Plain Windows accounts may not create symlinks. pm_infra decides that once per run and makes Hugging Face copy files instead, and retries interrupted downloads four times. Developer Mode is not needed; re-run `install-models`. |
 | `error.log` shows a `TypeError` from PyAV / `av` while decoding | faster-whisper's own decoder broke with PyAV 19; pm_infra reads the 16 kHz wav itself and hands samples to Whisper. Update pm_infra (re-run the installer). |
 | `install-models` or a run fails with `Weights only load failed` / `Unsupported global` | PyTorch 2.6+ refuses unknown pickled classes in checkpoints. pm_infra allowlists the four classes pyannote's checkpoints contain (fixed 2 Nov 2026); update pm_infra. |
