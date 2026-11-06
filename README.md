@@ -234,7 +234,7 @@ The Notion page gets minutes on top (summary, decisions, action items), action i
 4. Hardening before the first teammate install (the code itself opens no ports and holds no secrets; the risk sits in the update path):
    - Pin uv and ffmpeg to fixed versions in `install.ps1` and verify their SHA-256 before unpacking; publish the hash of each `pm_infra.zip` release and have the starter check it.
    - Pre-push hook or CI check that refuses commits containing token patterns (`hf_...`), absolute user paths or media files.
-   - Release only from tags built by the GitHub workflow; two-factor authentication on the GitHub account that owns the repo.
+   - Releases are built by hand from a tag (`git archive`) and uploaded with their SHA-256; no GitHub Actions involved. Two-factor authentication on the GitHub account that owns the repo.
    - Installer: show what it is about to download and from where, and refuse to continue on a hash mismatch rather than warn.
 5. Team spaces: calendar picker for `calendar_scope`, update checks.
 6. v2: `minutes` skill, Notion writing, Unmatched list, `minutes.md` snapshot, folder rename.
@@ -255,7 +255,7 @@ install/space_README.md        README placed in each space's pm_infra/
 src/pm_infra/                  the package: cli, tray, popup, inbox, engine, media, spaces, settings,
                                naming, lock, retention, windows_setup, paths, log
 tests/                         pytest, no GPU needed
-.github/workflows/release.yml  tag v* → pm_infra.zip on the GitHub release
+release (by hand)              `git archive --format=zip -o pm_infra.zip vX.Y.Z ':!tests' ':!.github' ':!docs/design'`, plus `sha256sum`, attached to the GitHub release of that tag
 docs/claude_code_prompt_v1.md  the v1 build brief
 docs/plan_v1.md                the v1 build plan
 docs/diagrams/*.svg            system map and recording flow, hand-written SVG, embedded above
